@@ -131,6 +131,15 @@ await new Betterer().AssertAsync(BettererRoslynTest.SyntaxQuery(
 
 // Roslyn analyzers (the eslint analog): track any DiagnosticAnalyzer's findings.
 await new Betterer().AssertAsync(BettererRoslynTest.Analyzers("Style", sourceFiles, analyzers));
+
+// Coverage: track uncovered lines from a Cobertura report, aiming for full coverage.
+await new Betterer().AssertAsync(
+    BettererCoverageTest.Create("Coverage", "coverage.cobertura.xml", goal: BettererFileTest.NoIssues));
+
+// Architecture (NetArchTest): baseline existing violations, fail on new ones.
+await new Betterer().AssertAsync(BettererArchTest.Create("Layering", () =>
+    Types.InAssembly(assembly).That().ResideInNamespace("App.Domain")
+        .ShouldNot().HaveDependencyOn("App.Infrastructure").GetResult()));
 ```
 
 ## CLI

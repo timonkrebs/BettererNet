@@ -20,6 +20,8 @@
     <ProjectReference Include="..\..\src\BettererNet.Xunit\BettererNet.Xunit.csproj" />
     <ProjectReference Include="..\..\src\BettererNet.Regex\BettererNet.Regex.csproj" />
     <ProjectReference Include="..\..\src\BettererNet.Roslyn\BettererNet.Roslyn.csproj" />
+    <ProjectReference Include="..\..\src\BettererNet.Coverage\BettererNet.Coverage.csproj" />
+    <ProjectReference Include="..\..\src\BettererNet.NetArchTest\BettererNet.NetArchTest.csproj" />
   </ItemGroup>
 
 </Project>
