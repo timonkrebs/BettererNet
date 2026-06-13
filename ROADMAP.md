@@ -8,10 +8,10 @@ and to add `.NET`-native capabilities on top.
 > coverlet and friends. The "what to build" sections below map each `betterer`
 > concept onto its idiomatic .NET counterpart.
 
-> **Progress:** ✅ Phase 0 & Phase 1 complete — the generic engine (tests, constraints, goals,
-> deadlines, result-state machine, runner, and file tests with issue hashing) and the xUnit
-> adapter are in place. ▶️ Phase 2 (built-in test integrations) is next.
-> Section 1 below describes the pre-Phase-0 baseline for the gap analysis.
+> **Progress:** ✅ Phase 0 & Phase 1 complete — the generic engine and xUnit adapter are in place.
+> ▶️ Phase 2 (built-in test integrations) in progress: the Regex test and the Roslyn tests
+> (compiler diagnostics, analyzers, syntax queries) are done; coverage and a NetArchTest wrapper
+> remain. Section 1 below describes the pre-Phase-0 baseline for the gap analysis.
 
 ---
 
@@ -142,9 +142,14 @@ BettererNet.Core          # engine: tests, constraints, goals, results file, sta
 > which BettererNet entirely lacks today. Built-in tests and CLI modes are comparatively
 > mechanical once this exists.
 
-### Phase 2 — Built-in tests
-Order by effort/value: Regex → Roslyn analyzer → Roslyn compiler/nullable → Roslyn syntax-query
-→ Coverage → NetArchTest wrapper.
+### Phase 2 — Built-in tests — in progress
+- ✅ `BettererRegexTest` (`BettererNet.Regex`) — count regex matches across globbed files.
+- ✅ `BettererRoslynTest` (`BettererNet.Roslyn`) — compiler diagnostics (nullable/typescript
+  analog), analyzers (eslint analog), and syntax queries (tsquery analog) over C# source.
+- ☐ Coverage test (coverlet / Cobertura) — track uncovered lines per file.
+- ☐ NetArchTest wrapper — promote the sample pattern to a first-class architecture test.
+- ☐ MSBuild-workspace loading + content-based file hashing for the Roslyn tests (currently they
+  operate on explicit source paths / a `Compilation`).
 
 ### Phase 3 — CLI & modes
 `dotnet tool` with `init` / `start` / `ci` / `watch` / `precommit` / `results`; `--filter`,
@@ -174,12 +179,10 @@ change-detection; `--workers` parallelism.
 
 ## 7. Recommended next step
 
-Phases 0 and 1 are complete: the solution is on `net10.0` with the full engine — `BettererTest<T>`
-with constraints/goals/deadlines, the result-state machine, `BettererRunner` + `BettererSuiteSummary`,
-file tests with issue hashing and diffing, a diff-stable results file (schema v2), and the xUnit
-adapter (now generic over any `IBettererTest`) — all covered by 50 tests.
+Phases 0 and 1 are complete, and Phase 2 is underway: `BettererRegexTest` (`BettererNet.Regex`)
+and `BettererRoslynTest` (`BettererNet.Roslyn` — compiler diagnostics, analyzers, and syntax
+queries) are implemented as `BettererFileTest`s and covered by the suite (60 tests).
 
-**Phase 2 (built-in tests)** is next, each implemented as a `BettererFileTest`:
-Regex → Roslyn analyzer → Roslyn compiler/nullable → Roslyn syntax-query → coverage → NetArchTest
-wrapper. The Regex test is the easiest first win; the Roslyn integrations also add content-based
-file hashing.
+Remaining Phase 2 work: a coverage test (coverlet/Cobertura), a first-class NetArchTest wrapper,
+and MSBuild-workspace loading so the Roslyn tests can analyse a whole solution (which also enables
+content-based file hashing). After that, **Phase 3** brings the CLI modes (`ci` / `watch` / `merge`).

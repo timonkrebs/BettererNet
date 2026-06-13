@@ -109,6 +109,30 @@ await new Betterer().AssertAsync(BettererFileTest.Create("Analyzer", () =>
 }));
 ```
 
+### Built-in test types
+
+`BettererNet.Regex` and `BettererNet.Roslyn` provide ready-made file tests:
+
+```csharp
+// Regex: ban a pattern and burn down existing matches.
+await new Betterer().AssertAsync(
+    BettererRegexTest.Create("NoConsoleWriteLine", @"Console\.WriteLine", new[] { "**/*.cs" }));
+
+// Roslyn compiler diagnostics: adopt nullable reference types incrementally.
+await new Betterer().AssertAsync(BettererRoslynTest.Diagnostics(
+    "Nullable", sourceFiles,
+    filter: d => d.Id.StartsWith("CS8"),
+    compilationOptions: new CSharpCompilationOptions(
+        OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable)));
+
+// Roslyn syntax query (the tsquery analog): count nodes you want to eliminate.
+await new Betterer().AssertAsync(BettererRoslynTest.SyntaxQuery(
+    "NoGoto", sourceFiles, node => node is GotoStatementSyntax));
+
+// Roslyn analyzers (the eslint analog): track any DiagnosticAnalyzer's findings.
+await new Betterer().AssertAsync(BettererRoslynTest.Analyzers("Style", sourceFiles, analyzers));
+```
+
 ## CLI
 
 A `betterernet` tool skeleton ships in `BettererNet.Cli`. Today it summarises a results file:
