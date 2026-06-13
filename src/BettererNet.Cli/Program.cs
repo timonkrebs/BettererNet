@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using BettererNet;
 
 const string version = "0.1.0-alpha";
@@ -6,7 +7,7 @@ Console.WriteLine($"BettererNet CLI v{version}");
 Console.WriteLine("Incremental improvement tracking for .NET — https://github.com/timonkrebs/BettererNet");
 Console.WriteLine();
 
-// Phase 0 skeleton: no real commands yet, but prove the Core wiring by summarising a
+// Phase 0/1 skeleton: no real commands yet, but prove the Core wiring by summarising a
 // results file if one is present. The init/start/ci/watch/precommit/results/merge
 // commands arrive in Phase 3 (see ROADMAP.md).
 var resultsPath = args.Length > 0 ? args[0] : BettererResultsFile.DefaultFileName;
@@ -16,9 +17,10 @@ if (File.Exists(resultsPath))
     var results = await BettererResultsFile.LoadAsync(resultsPath);
     Console.WriteLine($"Results file: {Path.GetFullPath(resultsPath)}");
     Console.WriteLine($"Tracked tests: {results.Results.Count}");
-    foreach (var (name, entry) in results.Results)
+    foreach (var (name, value) in results.Results)
     {
-        Console.WriteLine($"  - {name}: {entry.Issues.Count} issue(s)");
+        var detail = value is JsonArray array ? $"{array.Count} issue(s)" : value.ToJsonString();
+        Console.WriteLine($"  - {name}: {detail}");
     }
 }
 else

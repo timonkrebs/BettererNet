@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Xunit;
 
 namespace BettererNet.Tests;
@@ -30,8 +31,8 @@ public sealed class BettererConcurrencyTests : IDisposable
         Assert.Equal(count, file.Results.Count);
         for (var i = 0; i < count; i++)
         {
-            Assert.True(file.TryGet($"Test{i:D2}", out var entry));
-            Assert.Equal(new[] { $"Issue{i:D2}" }, entry!.Issues);
+            Assert.True(file.TryGet($"Test{i:D2}", out var value));
+            Assert.Equal(new[] { $"Issue{i:D2}" }, value!.Deserialize<List<string>>());
         }
     }
 }

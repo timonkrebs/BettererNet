@@ -1,64 +1,73 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Encodings.Web;
 using System.Text.Json;
-using System.Text.Json.Serialization;
+using System.Text.Json.Nodes;
 
 namespace BettererNet;
 
 /// <summary>
-/// Reader/writer for the single <c>.betterer.results</c> baseline file.
+/// Reader/writer for the single <c>.betterer.results</c> baseline file. Each test's serialized
+/// result is stored under its name; values are kept canonical (see <see cref="JsonCanonicalizer"/>)
+/// so the file is deterministic and diff-stable, and writes are atomic.
 /// </summary>
-/// <remarks>
-/// Serialisation is deterministic — test names and issues are sorted and the JSON is
-/// indented — so diffs stay small and merge-friendly. Writes are atomic (write to a
-/// temporary file then move into place) so a concurrent reader never observes a
-/// half-written file.
-/// </remarks>
 public sealed class BettererResultsFile
 {
     /// <summary>The conventional file name for a Betterer results file.</summary>
     public const string DefaultFileName = ".betterer.results";
 
-    private const int CurrentVersion = 1;
+    private const int CurrentVersion = 2;
 
-    private static readonly JsonSerializerOptions SerializerOptions = new()
+    private static readonly JsonSerializerOptions WriteOptions = new()
     {
         WriteIndented = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = JsonIgnoreCondition.Never,
+        // Results files are read and merged by humans; keep `+`, backticks etc. unescaped.
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
-    private readonly SortedDictionary<string, BettererStoredResult> _results;
+    private readonly SortedDictionary<string, JsonNode> _results;
 
-    private BettererResultsFile(string path, SortedDictionary<string, BettererStoredResult> results)
+    private BettererResultsFile(string path, SortedDictionary<string, JsonNode> results)
     {
         Path = path;
         _results = results;
     }
 
-    /// <summary>Absolute or relative path of the results file on disk.</summary>
+    /// <summary>Path of the results file on disk.</summary>
     public string Path { get; }
 
-    /// <summary>The stored results, keyed by test name (ordinal-sorted).</summary>
-    public IReadOnlyDictionary<string, BettererStoredResult> Results => _results;
+    /// <summary>The stored results, keyed by test name (ordinal-sorted). Values are canonical.</summary>
+    public IReadOnlyDictionary<string, JsonNode> Results => _results;
 
     /// <summary>Load the results file, returning an empty instance if it does not yet exist.</summary>
     public static async Task<BettererResultsFile> LoadAsync(string path, CancellationToken cancellationToken = default)
     {
-        var results = new SortedDictionary<string, BettererStoredResult>(StringComparer.Ordinal);
+        var results = new SortedDictionary<string, JsonNode>(StringComparer.Ordinal);
 
         if (File.Exists(path))
         {
-            await using var stream = File.OpenRead(path);
-            var dto = await JsonSerializer.DeserializeAsync<ResultsFileDto>(stream, SerializerOptions, cancellationToken);
-            if (dto?.Results is not null)
+            var text = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+            if (JsonNode.Parse(text) is JsonObject root)
             {
-                foreach (var (name, entry) in dto.Results)
+                var version = root["version"]?.GetValue<int>() ?? 1;
+                if (root["results"] is JsonObject stored)
                 {
-                    results[name] = new BettererStoredResult
+                    foreach (var (name, node) in stored)
                     {
-                        Timestamp = entry.Timestamp,
-                        Issues = entry.Issues ?? new List<string>(),
-                    };
+                        if (node is null)
+                        {
+                            continue;
+                        }
+
+                        // v1 stored an object { timestamp, issues }; the value is the issues array.
+                        var value = version < 2 && node is JsonObject legacy && legacy["issues"] is JsonArray issues
+                            ? issues
+                            : node;
+
+                        if (JsonCanonicalizer.Canonicalize(value) is { } canonical)
+                        {
+                            results[name] = canonical;
+                        }
+                    }
                 }
             }
         }
@@ -66,19 +75,44 @@ public sealed class BettererResultsFile
         return new BettererResultsFile(path, results);
     }
 
-    /// <summary>Get the stored baseline for a test, if one exists.</summary>
-    public bool TryGet(string testName, [NotNullWhen(true)] out BettererStoredResult? result)
-        => _results.TryGetValue(testName, out result);
+    /// <summary>Get the stored (canonical) result for a test, if one exists.</summary>
+    public bool TryGet(string name, [NotNullWhen(true)] out JsonNode? value)
+    {
+        if (_results.TryGetValue(name, out var node))
+        {
+            value = node;
+            return true;
+        }
 
-    /// <summary>Add or replace the stored baseline for a test.</summary>
-    public void Set(string testName, BettererStoredResult result)
-        => _results[testName] = result;
+        value = null;
+        return false;
+    }
 
-    /// <summary>Remove the stored baseline for a test. Returns <c>true</c> if one was removed.</summary>
-    public bool Remove(string testName)
-        => _results.Remove(testName);
+    /// <summary>
+    /// Store a test's result (canonicalized). A <c>null</c> value removes the entry.
+    /// Returns <c>true</c> if the stored content actually changed.
+    /// </summary>
+    public bool Set(string name, JsonNode? value)
+    {
+        if (value is null)
+        {
+            return Remove(name);
+        }
 
-    /// <summary>Persist the results to disk atomically with deterministic ordering.</summary>
+        var canonical = JsonCanonicalizer.Canonicalize(value)!;
+        if (_results.TryGetValue(name, out var existing) && JsonCanonicalizer.AreEqual(existing, canonical))
+        {
+            return false;
+        }
+
+        _results[name] = canonical;
+        return true;
+    }
+
+    /// <summary>Remove a test's result. Returns <c>true</c> if one was removed.</summary>
+    public bool Remove(string name) => _results.Remove(name);
+
+    /// <summary>Persist the results to disk atomically. An empty set deletes the file.</summary>
     public async Task SaveAsync(CancellationToken cancellationToken = default)
     {
         var directory = System.IO.Path.GetDirectoryName(Path);
@@ -87,7 +121,6 @@ public sealed class BettererResultsFile
             Directory.CreateDirectory(directory);
         }
 
-        // Nothing to store: remove the file so a clean codebase carries no baseline.
         if (_results.Count == 0)
         {
             if (File.Exists(Path))
@@ -98,34 +131,20 @@ public sealed class BettererResultsFile
             return;
         }
 
-        var dto = new ResultsFileDto { Version = CurrentVersion };
-        foreach (var (name, entry) in _results)
+        var results = new JsonObject();
+        foreach (var (name, value) in _results)
         {
-            var issues = new List<string>(entry.Issues);
-            issues.Sort(StringComparer.Ordinal);
-            dto.Results[name] = new ResultEntryDto { Timestamp = entry.Timestamp, Issues = issues };
+            results[name] = value.DeepClone();
         }
+
+        var root = new JsonObject
+        {
+            ["version"] = CurrentVersion,
+            ["results"] = results,
+        };
 
         var tempPath = Path + ".tmp";
-        await using (var stream = File.Create(tempPath))
-        {
-            await JsonSerializer.SerializeAsync(stream, dto, SerializerOptions, cancellationToken);
-        }
-
+        await File.WriteAllTextAsync(tempPath, root.ToJsonString(WriteOptions), cancellationToken).ConfigureAwait(false);
         File.Move(tempPath, Path, overwrite: true);
-    }
-
-    private sealed class ResultsFileDto
-    {
-        public int Version { get; set; } = CurrentVersion;
-
-        public SortedDictionary<string, ResultEntryDto> Results { get; set; } = new(StringComparer.Ordinal);
-    }
-
-    private sealed class ResultEntryDto
-    {
-        public DateTimeOffset Timestamp { get; set; }
-
-        public List<string>? Issues { get; set; }
     }
 }

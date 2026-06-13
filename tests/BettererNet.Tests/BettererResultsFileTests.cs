@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Xunit;
 
 namespace BettererNet.Tests;
@@ -10,6 +12,8 @@ public sealed class BettererResultsFileTests : IDisposable
 
     public void Dispose() => Directory.Delete(_dir, recursive: true);
 
+    private static JsonArray Arr(params string[] values) => new(values.Select(v => (JsonNode?)v).ToArray());
+
     [Fact]
     public async Task Load_WhenFileMissing_ReturnsEmpty()
     {
@@ -19,106 +23,78 @@ public sealed class BettererResultsFileTests : IDisposable
     }
 
     [Fact]
-    public async Task SaveThenLoad_RoundTripsIssues()
+    public async Task SaveThenLoad_RoundTripsValue_Canonicalized()
     {
         var file = await BettererResultsFile.LoadAsync(ResultsPath);
-        file.Set("TestA", new BettererStoredResult { Issues = { "b", "a" } });
+        file.Set("TestA", Arr("b", "a"));
         await file.SaveAsync();
 
         var reloaded = await BettererResultsFile.LoadAsync(ResultsPath);
 
-        Assert.True(reloaded.TryGet("TestA", out var entry));
-        Assert.Equal(new[] { "a", "b" }, entry!.Issues);
+        Assert.True(reloaded.TryGet("TestA", out var value));
+        Assert.Equal(new[] { "a", "b" }, value!.Deserialize<List<string>>());
     }
 
     [Fact]
-    public async Task SaveThenLoad_PreservesTimestamp()
+    public void Set_ReturnsFalse_WhenCanonicalValueUnchanged()
     {
-        var timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero);
-        var file = await BettererResultsFile.LoadAsync(ResultsPath);
-        file.Set("TestA", new BettererStoredResult { Timestamp = timestamp, Issues = { "a" } });
-        await file.SaveAsync();
+        var file = BettererResultsFile.LoadAsync(ResultsPath).Result;
 
-        var reloaded = await BettererResultsFile.LoadAsync(ResultsPath);
-
-        Assert.True(reloaded.TryGet("TestA", out var entry));
-        Assert.Equal(timestamp, entry!.Timestamp);
+        Assert.True(file.Set("T", Arr("b", "a")));
+        // Same set, different order -> canonical value is unchanged.
+        Assert.False(file.Set("T", Arr("a", "b")));
+        Assert.True(file.Set("T", Arr("a", "b", "c")));
     }
 
     [Fact]
-    public async Task Save_SortsTestNamesAndIssues_Deterministically()
+    public async Task Save_SortsTestNames_AndLeavesNoTempFile()
     {
         var file = await BettererResultsFile.LoadAsync(ResultsPath);
-        file.Set("Zebra", new BettererStoredResult { Issues = { "z2", "z1" } });
-        file.Set("Alpha", new BettererStoredResult { Issues = { "a2", "a1" } });
+        file.Set("Zebra", Arr("z"));
+        file.Set("Alpha", Arr("a"));
         await file.SaveAsync();
 
         var json = await File.ReadAllTextAsync(ResultsPath);
 
         Assert.True(json.IndexOf("Alpha", StringComparison.Ordinal) < json.IndexOf("Zebra", StringComparison.Ordinal));
-        Assert.True(json.IndexOf("a1", StringComparison.Ordinal) < json.IndexOf("a2", StringComparison.Ordinal));
-        // Atomic write leaves no temporary file behind.
         Assert.False(File.Exists(ResultsPath + ".tmp"));
     }
 
     [Fact]
-    public async Task Save_WritesSchemaVersion()
+    public async Task Save_WritesSchemaVersion2()
     {
         var file = await BettererResultsFile.LoadAsync(ResultsPath);
-        file.Set("TestA", new BettererStoredResult { Issues = { "a" } });
+        file.Set("TestA", Arr("a"));
         await file.SaveAsync();
 
         var json = await File.ReadAllTextAsync(ResultsPath);
 
-        Assert.Contains("\"version\": 1", json);
+        Assert.Contains("\"version\": 2", json);
     }
 
     [Fact]
-    public async Task Save_HandlesDotNetTypeNames_RoundTripsAndSorts()
+    public async Task Save_HandlesDotNetTypeNames_RoundTripsSortedAndUnescaped()
     {
         var file = await BettererResultsFile.LoadAsync(ResultsPath);
-        file.Set("My.Namespace.Tests+Nested", new BettererStoredResult
-        {
-            Issues = { "My.Ns.Type`2.Method", "My.Ns.IFoo", "My.Ns.Outer+Inner" },
-        });
+        file.Set("My.Namespace.Tests+Nested", Arr("My.Ns.Type`2.Method", "My.Ns.IFoo", "My.Ns.Outer+Inner"));
         await file.SaveAsync();
 
-        var reloaded = await BettererResultsFile.LoadAsync(ResultsPath);
+        var json = await File.ReadAllTextAsync(ResultsPath);
+        // The relaxed encoder keeps `+` readable rather than escaping it to +.
+        Assert.Contains("My.Ns.Outer+Inner", json);
 
-        Assert.True(reloaded.TryGet("My.Namespace.Tests+Nested", out var entry));
+        var reloaded = await BettererResultsFile.LoadAsync(ResultsPath);
+        Assert.True(reloaded.TryGet("My.Namespace.Tests+Nested", out var value));
         Assert.Equal(
             new[] { "My.Ns.IFoo", "My.Ns.Outer+Inner", "My.Ns.Type`2.Method" },
-            entry!.Issues);
-    }
-
-    [Fact]
-    public async Task Set_OverwritesExistingEntry()
-    {
-        var file = await BettererResultsFile.LoadAsync(ResultsPath);
-        file.Set("TestA", new BettererStoredResult { Issues = { "old" } });
-        file.Set("TestA", new BettererStoredResult { Issues = { "new" } });
-
-        Assert.True(file.TryGet("TestA", out var entry));
-        Assert.Equal(new[] { "new" }, entry!.Issues);
-    }
-
-    [Fact]
-    public async Task Remove_ReturnsTrueOnlyWhenPresent()
-    {
-        var file = await BettererResultsFile.LoadAsync(ResultsPath);
-
-        Assert.False(file.Remove("missing"));
-
-        file.Set("TestA", new BettererStoredResult { Issues = { "a" } });
-        Assert.True(file.Remove("TestA"));
-        Assert.False(file.Remove("TestA"));
+            value!.Deserialize<List<string>>());
     }
 
     [Fact]
     public async Task Save_WhenEmpty_DeletesFile()
     {
         var file = await BettererResultsFile.LoadAsync(ResultsPath);
-        file.Set("TestA", new BettererStoredResult { Issues = { "x" } });
+        file.Set("TestA", Arr("x"));
         await file.SaveAsync();
         Assert.True(File.Exists(ResultsPath));
 
@@ -126,5 +102,36 @@ public sealed class BettererResultsFileTests : IDisposable
         await file.SaveAsync();
 
         Assert.False(File.Exists(ResultsPath));
+    }
+
+    [Fact]
+    public void Remove_ReturnsTrueOnlyWhenPresent()
+    {
+        var file = BettererResultsFile.LoadAsync(ResultsPath).Result;
+
+        Assert.False(file.Remove("missing"));
+
+        file.Set("TestA", Arr("a"));
+        Assert.True(file.Remove("TestA"));
+        Assert.False(file.Remove("TestA"));
+    }
+
+    [Fact]
+    public async Task LoadsLegacyV1Format()
+    {
+        const string v1 = """
+            {
+              "version": 1,
+              "results": {
+                "OldTest": { "timestamp": "2026-01-01T00:00:00+00:00", "issues": ["x", "y"] }
+              }
+            }
+            """;
+        await File.WriteAllTextAsync(ResultsPath, v1);
+
+        var file = await BettererResultsFile.LoadAsync(ResultsPath);
+
+        Assert.True(file.TryGet("OldTest", out var value));
+        Assert.Equal(new[] { "x", "y" }, value!.Deserialize<List<string>>());
     }
 }

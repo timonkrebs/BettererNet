@@ -5,10 +5,15 @@ using Xunit;
 namespace BettererNet;
 
 /// <summary>
-/// xUnit adapter for Betterer. Compares the issues reported by a test against a stored
-/// baseline in the shared <c>.betterer.results</c> file, failing only when new issues
-/// appear and ratcheting the baseline down as issues are fixed.
+/// xUnit adapter for Betterer. Compares the issues reported by a test against a stored baseline
+/// in the shared <c>.betterer.results</c> file, failing only when new issues appear and ratcheting
+/// the baseline down as issues are fixed.
 /// </summary>
+/// <remarks>
+/// The comparison runs on the shared engine (a <see cref="BettererTest{T}"/> over the reported
+/// names with a <see cref="BettererConstraints.SetBased{T}"/> constraint); this adapter layers
+/// the xUnit-specific policy of failing the test on top.
+/// </remarks>
 public sealed class Betterer
 {
     // One async gate per results file so parallel xUnit test collections in the same
@@ -36,14 +41,14 @@ public sealed class Betterer
     }
 
     /// <summary>
-    /// Assert that <paramref name="testResult"/> introduces no issues that are not already
-    /// in the baseline. Improvements are locked in by updating the baseline.
+    /// Assert that <paramref name="testResult"/> introduces no issues that are not already in the
+    /// baseline. Improvements are locked in by updating the baseline.
     /// </summary>
     /// <param name="testResult">The issues the test currently reports.</param>
     /// <param name="allowFirstFailure">
-    /// When <c>true</c>, the very first run records the reported issues as the baseline
-    /// instead of failing. When <c>false</c> (default), a test with issues and no existing
-    /// baseline fails so new baselines are an explicit choice.
+    /// When <c>true</c>, the very first run records the reported issues as the baseline instead of
+    /// failing. When <c>false</c> (default), a test with issues and no existing baseline fails so
+    /// new baselines are an explicit choice.
     /// </param>
     public async Task AssertAsync(BettererResult testResult, bool allowFirstFailure = false)
     {
@@ -66,35 +71,47 @@ public sealed class Betterer
                 return;
             }
 
-            if (!resultsFile.TryGet(_testName, out var baseline))
+            var test = new BettererTest<List<string>>(
+                _testName,
+                () => new List<string>(issues),
+                BettererConstraints.SetBased<string>(),
+                JsonBettererSerializer<List<string>>.Instance);
+
+            resultsFile.TryGet(_testName, out var baselineValue);
+            var summary = await test.RunAsync(baselineValue, new BettererRunContext());
+
+            switch (summary.Status)
             {
-                // First time this test has run with issues. Fail so that accepting a new
-                // baseline is an explicit choice, unless seeding/updating was requested.
-                if (!allowFirstFailure && !UpdateRequested)
-                {
-                    Assert.Empty(issues);
-                }
+                case BettererRunStatus.New:
+                    // Fail so accepting a new baseline is an explicit choice, unless seeding.
+                    if (!allowFirstFailure && !UpdateRequested)
+                    {
+                        Assert.Empty(issues);
+                    }
 
-                resultsFile.Set(_testName, new BettererStoredResult { Issues = new List<string>(issues) });
-                await resultsFile.SaveAsync();
-                return;
+                    resultsFile.Set(_testName, summary.Result);
+                    await resultsFile.SaveAsync();
+                    return;
+
+                case BettererRunStatus.Worse:
+                    // Surface the specific new issues in the failure message.
+                    var baseline = baselineValue is null
+                        ? new List<string>()
+                        : JsonBettererSerializer<List<string>>.Instance.Deserialize(baselineValue);
+                    var baselineSet = new HashSet<string>(baseline, StringComparer.Ordinal);
+                    Assert.Empty(issues.Where(issue => !baselineSet.Contains(issue)));
+                    return;
+
+                case BettererRunStatus.Better:
+                    // Issues were fixed: ratchet the baseline down.
+                    resultsFile.Set(_testName, summary.Result);
+                    await resultsFile.SaveAsync();
+                    return;
+
+                default:
+                    // Same: the on-disk baseline is already correct, so leave it untouched.
+                    return;
             }
-
-            // Subsequent run: fail on any issue not present in the baseline.
-            var baselineSet = new HashSet<string>(baseline.Issues, StringComparer.Ordinal);
-            var newIssues = issues.Where(issue => !baselineSet.Contains(issue)).ToList();
-            Assert.Empty(newIssues);
-
-            // No regression. If the issue set is unchanged the on-disk baseline is already
-            // correct, so leave it untouched to keep the results file diff-stable. Only
-            // rewrite when issues were fixed, ratcheting the baseline down.
-            if (baselineSet.SetEquals(issues))
-            {
-                return;
-            }
-
-            resultsFile.Set(_testName, new BettererStoredResult { Issues = new List<string>(issues) });
-            await resultsFile.SaveAsync();
         }
         finally
         {

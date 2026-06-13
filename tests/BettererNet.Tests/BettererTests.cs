@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Xunit;
 using Xunit.Sdk;
 
@@ -20,6 +21,12 @@ public sealed class BettererTests : IDisposable
         return result;
     }
 
+    private async Task<List<string>?> ReadBaseline(string testName = "Test")
+    {
+        var file = await BettererResultsFile.LoadAsync(ResultsPath);
+        return file.TryGet(testName, out var value) ? value!.Deserialize<List<string>>() : null;
+    }
+
     [Fact]
     public async Task FirstFailure_WithoutAllow_ThrowsAndWritesNoBaseline()
     {
@@ -34,9 +41,7 @@ public sealed class BettererTests : IDisposable
     {
         await NewBetterer().AssertAsync(Result("Issue1"), allowFirstFailure: true);
 
-        var file = await BettererResultsFile.LoadAsync(ResultsPath);
-        Assert.True(file.TryGet("Test", out var entry));
-        Assert.Equal(new[] { "Issue1" }, entry!.Issues);
+        Assert.Equal(new[] { "Issue1" }, await ReadBaseline());
     }
 
     [Fact]
@@ -66,9 +71,7 @@ public sealed class BettererTests : IDisposable
             () => NewBetterer().AssertAsync(Result("Issue1", "Issue2")));
 
         // The accepted baseline must not be overwritten by the worse result.
-        var file = await BettererResultsFile.LoadAsync(ResultsPath);
-        Assert.True(file.TryGet("Test", out var entry));
-        Assert.Equal(new[] { "Issue1" }, entry!.Issues);
+        Assert.Equal(new[] { "Issue1" }, await ReadBaseline());
     }
 
     [Fact]
@@ -77,9 +80,7 @@ public sealed class BettererTests : IDisposable
         await NewBetterer().AssertAsync(Result("Issue1", "Issue2"), allowFirstFailure: true);
         await NewBetterer().AssertAsync(Result("Issue1"));
 
-        var file = await BettererResultsFile.LoadAsync(ResultsPath);
-        Assert.True(file.TryGet("Test", out var entry));
-        Assert.Equal(new[] { "Issue1" }, entry!.Issues);
+        Assert.Equal(new[] { "Issue1" }, await ReadBaseline());
     }
 
     [Fact]
@@ -105,11 +106,8 @@ public sealed class BettererTests : IDisposable
         await Assert.ThrowsAnyAsync<XunitException>(
             () => NewBetterer("TestB").AssertAsync(Result("B1", "B2")));
 
-        var file = await BettererResultsFile.LoadAsync(ResultsPath);
-        Assert.True(file.TryGet("TestA", out var a));
-        Assert.Equal(new[] { "A1" }, a!.Issues);
-        Assert.True(file.TryGet("TestB", out var b));
-        Assert.Equal(new[] { "B1" }, b!.Issues);
+        Assert.Equal(new[] { "A1" }, await ReadBaseline("TestA"));
+        Assert.Equal(new[] { "B1" }, await ReadBaseline("TestB"));
     }
 
     [Fact]
