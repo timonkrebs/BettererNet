@@ -340,20 +340,33 @@ public static class BettererCli
         TryGit("config merge.betterer.driver \"betterernet merge %O %A %B\"", directory);
     }
 
+    private const int GitTimeoutMilliseconds = 10_000;
+
     private static void TryGit(string arguments, string workingDirectory)
     {
         try
         {
-            using var process = Process.Start(new ProcessStartInfo("git", arguments)
+            var startInfo = new ProcessStartInfo("git", arguments)
             {
                 WorkingDirectory = workingDirectory,
                 UseShellExecute = false,
-            });
-            process?.WaitForExit();
+            };
+            startInfo.Environment["GIT_TERMINAL_PROMPT"] = "0"; // never block on an interactive prompt
+
+            using var process = Process.Start(startInfo);
+            if (process is null)
+            {
+                return;
+            }
+
+            if (!process.WaitForExit(GitTimeoutMilliseconds))
+            {
+                process.Kill(entireProcessTree: true); // best effort: don't let a stuck git hang us
+            }
         }
         catch
         {
-            // Best effort: commands still succeed even if git isn't available.
+            // Best effort: commands still succeed even if git is missing, slow, or blocked.
         }
     }
 
