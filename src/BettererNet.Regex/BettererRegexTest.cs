@@ -16,16 +16,20 @@ public static class BettererRegexTest
     /// </summary>
     /// <param name="includes">Glob patterns (e.g. <c>"**/*.cs"</c>) relative to <paramref name="baseDirectory"/>.</param>
     /// <param name="baseDirectory">Root to glob from. Defaults to the current directory.</param>
+    /// <param name="matchTimeout">Per-match timeout guarding against ReDoS. Defaults to 2 seconds.</param>
     public static BettererTest<BettererFileIssues> Create(
         string name,
         string pattern,
         IReadOnlyList<string> includes,
         string? baseDirectory = null,
         RegexOptions options = RegexOptions.None,
+        TimeSpan? matchTimeout = null,
         Func<BettererFileIssues, bool>? goal = null,
         DateTimeOffset? deadline = null)
     {
-        var regex = new Regex(pattern, options);
+        // Compile once, with a match timeout, so a pathological pattern over large files can't
+        // hang via catastrophic backtracking (ReDoS).
+        var regex = new Regex(pattern, options, matchTimeout ?? TimeSpan.FromSeconds(2));
         var root = Path.GetFullPath(baseDirectory ?? Directory.GetCurrentDirectory());
         return BettererFileTest.Create(name, () => Scan(regex, root, includes), goal, deadline);
     }

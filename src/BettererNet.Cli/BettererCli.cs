@@ -270,6 +270,10 @@ public static class BettererCli
         return (command, options, null);
     }
 
+    // Filter patterns are user-provided; compile each once with a match timeout so a pathological
+    // pattern can't hang the CLI via catastrophic backtracking (ReDoS).
+    private static readonly TimeSpan FilterTimeout = TimeSpan.FromSeconds(1);
+
     private static IEnumerable<IBettererTest> Filter(IEnumerable<IBettererTest> tests, IReadOnlyList<string> filters)
     {
         if (filters.Count == 0)
@@ -277,12 +281,23 @@ public static class BettererCli
             return tests;
         }
 
-        var positives = filters.Where(filter => !filter.StartsWith('!')).ToList();
-        var negatives = filters.Where(filter => filter.StartsWith('!')).Select(filter => filter[1..]).ToList();
+        var positives = new List<Regex>();
+        var negatives = new List<Regex>();
+        foreach (var filter in filters)
+        {
+            if (filter.StartsWith('!'))
+            {
+                negatives.Add(new Regex(filter[1..], RegexOptions.None, FilterTimeout));
+            }
+            else
+            {
+                positives.Add(new Regex(filter, RegexOptions.None, FilterTimeout));
+            }
+        }
 
         return tests.Where(test =>
-            !negatives.Any(pattern => Regex.IsMatch(test.Name, pattern)) &&
-            (positives.Count == 0 || positives.Any(pattern => Regex.IsMatch(test.Name, pattern))));
+            !negatives.Any(pattern => pattern.IsMatch(test.Name)) &&
+            (positives.Count == 0 || positives.Any(pattern => pattern.IsMatch(test.Name))));
     }
 
     private static IBettererReporter ResolveReporter(BettererCliOptions options) =>
