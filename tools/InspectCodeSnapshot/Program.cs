@@ -136,9 +136,9 @@ namespace InspectCodeSnapshot
 
             if (_settings.Debug)
             {
-                while (!process.StandardOutput.EndOfStream)
+                string line;
+                while ((line = await process.StandardOutput.ReadLineAsync()) != null)
                 {
-                    var line = await process.StandardOutput.ReadLineAsync();
                     Console.WriteLine(line);
                 }
             }

@@ -35,7 +35,7 @@ tests/
 
 ## Prerequisites
 
-- [.NET SDK 8.0](https://dotnet.microsoft.com/download) or newer.
+- [.NET SDK 10.0](https://dotnet.microsoft.com/download) or newer.
 
 ## Build & test
 

@@ -115,13 +115,14 @@ BettererNet.Core          # engine: tests, constraints, goals, results file, sta
 ## 5. Phased roadmap
 
 ### Phase 0 — Foundation ✅ complete
-- ✅ Retargeted to `net8.0` (LTS) via a root `Directory.Build.props`; dropped EOL `net5.0`.
+- ✅ Retargeted to `net10.0` (LTS) via a root `Directory.Build.props`; dropped EOL `net5.0`.
 - ✅ Restructured to `src/` (`BettererNet.Core` / `.Xunit` / `.Cli`), `samples/`, `tools/`,
   `tests/`, with a solution at the repo root. (`integrations/*` land in Phase 2.)
 - ✅ Single `.betterer.results` reader/writer (`BettererResultsFile`) — deterministic,
   sorted, indented, atomic writes; diff-stable across runs.
 - ✅ Migrated the xUnit adapter onto the single results file; added a `BETTERER_UPDATE`
-  seeding escape hatch and a `tests/BettererNet.Tests` suite covering core + adapter.
+  seeding escape hatch and a `tests/BettererNet.Tests` suite (19 tests covering the core,
+  the adapter ratchet/isolation semantics, and concurrent writes).
 
 ### Phase 1 — Core engine (parity backbone) ⭐ highest leverage
 - `BettererTest<T>` with `Test` / `Constraint` / `Goal` / `Deadline`.
@@ -166,7 +167,7 @@ change-detection; `--workers` parallelism.
 
 ## 7. Recommended next step
 
-Phase 0 is done: the solution is on `net8.0`, restructured into `src`/`samples`/`tools`/`tests`,
+Phase 0 is done: the solution is on `net10.0`, restructured into `src`/`samples`/`tools`/`tests`,
 and the single diff-stable `.betterer.results` reader/writer is in place and under test.
 
 **Phase 1 (core engine)** is next. It is the dependency root for parity: introduce

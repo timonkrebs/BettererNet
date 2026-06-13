@@ -58,6 +58,20 @@ public sealed class BettererTests : IDisposable
     }
 
     [Fact]
+    public async Task Regression_DoesNotModifyBaseline()
+    {
+        await NewBetterer().AssertAsync(Result("Issue1"), allowFirstFailure: true);
+
+        await Assert.ThrowsAnyAsync<XunitException>(
+            () => NewBetterer().AssertAsync(Result("Issue1", "Issue2")));
+
+        // The accepted baseline must not be overwritten by the worse result.
+        var file = await BettererResultsFile.LoadAsync(ResultsPath);
+        Assert.True(file.TryGet("Test", out var entry));
+        Assert.Equal(new[] { "Issue1" }, entry!.Issues);
+    }
+
+    [Fact]
     public async Task FewerIssues_RatchetsBaselineDown()
     {
         await NewBetterer().AssertAsync(Result("Issue1", "Issue2"), allowFirstFailure: true);
@@ -66,6 +80,36 @@ public sealed class BettererTests : IDisposable
         var file = await BettererResultsFile.LoadAsync(ResultsPath);
         Assert.True(file.TryGet("Test", out var entry));
         Assert.Equal(new[] { "Issue1" }, entry!.Issues);
+    }
+
+    [Fact]
+    public async Task ReorderedIssues_AreNotARegression_AndDoNotRewriteFile()
+    {
+        await NewBetterer().AssertAsync(Result("A", "B", "C"), allowFirstFailure: true);
+        var before = await File.ReadAllTextAsync(ResultsPath);
+
+        // Same set, different order: passes and leaves the results file byte-for-byte unchanged.
+        await NewBetterer().AssertAsync(Result("C", "A", "B"));
+        var after = await File.ReadAllTextAsync(ResultsPath);
+
+        Assert.Equal(before, after);
+    }
+
+    [Fact]
+    public async Task DifferentTestNames_AreIsolated()
+    {
+        await NewBetterer("TestA").AssertAsync(Result("A1"), allowFirstFailure: true);
+        await NewBetterer("TestB").AssertAsync(Result("B1"), allowFirstFailure: true);
+
+        // A regression in TestB must not disturb TestA's accepted baseline.
+        await Assert.ThrowsAnyAsync<XunitException>(
+            () => NewBetterer("TestB").AssertAsync(Result("B1", "B2")));
+
+        var file = await BettererResultsFile.LoadAsync(ResultsPath);
+        Assert.True(file.TryGet("TestA", out var a));
+        Assert.Equal(new[] { "A1" }, a!.Issues);
+        Assert.True(file.TryGet("TestB", out var b));
+        Assert.Equal(new[] { "B1" }, b!.Issues);
     }
 
     [Fact]
