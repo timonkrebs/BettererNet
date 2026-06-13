@@ -166,8 +166,12 @@ betterernet --config path/to/MyConfig.dll watch     # re-run on .cs changes
 betterernet --config path/to/MyConfig.dll precommit # run, then `git add` the results
 betterernet results                                 # print the current results file
 betterernet init                                    # scaffold a starter BettererConfig.cs
+betterernet init --automerge                         # also configure the git merge driver
+betterernet merge <base> <ours> <theirs>            # resolve a .betterer.results conflict
 ```
 
 Common options: `--results <path>`, `--filter <regex>` (repeatable; a leading `!` negates),
-`--update` (accept regressions), `--silent`. The `merge` command arrives in Phase 4 — see
-[ROADMAP.md](ROADMAP.md).
+`--update` (accept regressions), `--workers <n>` (run tests in parallel), `--silent`.
+
+With `--automerge` configured, git resolves `.betterer.results` conflicts automatically by taking
+the tightest baseline (so no branch's improvements are lost).

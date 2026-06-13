@@ -12,10 +12,11 @@ public sealed class BettererCliTests : IDisposable
 
     public void Dispose() => Directory.Delete(_dir, recursive: true);
 
-    private BettererCliOptions Options(bool update = false, params string[] filters) => new()
+    private BettererCliOptions Options(bool update = false, int workers = 1, params string[] filters) => new()
     {
         ResultsPath = ResultsPath,
         Update = update,
+        Workers = workers,
         Filters = filters,
         Reporter = new FakeReporter(),
     };
@@ -132,6 +133,68 @@ public sealed class BettererCliTests : IDisposable
         var file = await BettererResultsFile.LoadAsync(ResultsPath);
         Assert.True(file.TryGet("alpha", out _));
         Assert.False(file.TryGet("beta", out _));
+    }
+
+    [Fact]
+    public void Parse_ReadsWorkers()
+    {
+        var (_, options, error) = BettererCli.Parse(["start", "--workers", "4"]);
+
+        Assert.Null(error);
+        Assert.Equal(4, options.Workers);
+    }
+
+    [Fact]
+    public void Parse_InvalidWorkers_ReturnsError()
+    {
+        var (_, _, error) = BettererCli.Parse(["--workers", "zero"]);
+
+        Assert.NotNull(error);
+    }
+
+    [Fact]
+    public async Task Workers_RunsAllTestsCorrectly()
+    {
+        var tests = Enumerable.Range(0, 10).Select(i => Count($"t{i:D2}", i)).ToArray();
+
+        var code = await BettererCli.StartAsync(tests, Options(workers: 4));
+
+        Assert.Equal(0, code);
+        var file = await BettererResultsFile.LoadAsync(ResultsPath);
+        Assert.Equal(10, file.Results.Count);
+        for (var i = 0; i < 10; i++)
+        {
+            Assert.Equal(i, file.Results[$"t{i:D2}"].GetValue<long>());
+        }
+    }
+
+    [Fact]
+    public async Task Merge_CombinesResultsFiles()
+    {
+        var oursPath = Path.Combine(_dir, "ours.results");
+        var theirsPath = Path.Combine(_dir, "theirs.results");
+        var ours = BettererResultsFile.Create(oursPath);
+        ours.Set("a", JsonValue.Create(3L));
+        await ours.SaveAsync();
+        var theirs = BettererResultsFile.Create(theirsPath);
+        theirs.Set("a", JsonValue.Create(5L));
+        await theirs.SaveAsync();
+
+        var code = await BettererCli.MergeAsync(["merge", oursPath, theirsPath]);
+
+        Assert.Equal(0, code);
+        var merged = await BettererResultsFile.LoadAsync(oursPath);
+        Assert.Equal(3, merged.Results["a"].GetValue<long>());
+    }
+
+    [Fact]
+    public void Init_Automerge_WritesGitAttributes()
+    {
+        var code = BettererCli.Init(_dir, automerge: true);
+
+        Assert.Equal(0, code);
+        Assert.True(File.Exists(Path.Combine(_dir, "BettererConfig.cs")));
+        Assert.Contains("merge=betterer", File.ReadAllText(Path.Combine(_dir, ".gitattributes")));
     }
 
     private sealed class FakeReporter : IBettererReporter

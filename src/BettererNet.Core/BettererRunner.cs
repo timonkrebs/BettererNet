@@ -12,20 +12,49 @@ public static class BettererRunner
         BettererResultsFile resultsFile,
         BettererRunContext? context = null,
         bool write = true,
+        int maxDegreeOfParallelism = 1,
         CancellationToken cancellationToken = default)
     {
         context ??= new BettererRunContext();
 
-        var runs = new List<BettererRunSummary>();
-        var changed = false;
-
-        foreach (var test in tests)
+        // Read baselines up front (cheap, single-threaded), then run the (possibly expensive) tests.
+        var inputs = tests.Select(test =>
         {
-            resultsFile.TryGet(test.Name, out var baselineValue);
-            var summary = await test.RunAsync(baselineValue, context, cancellationToken).ConfigureAwait(false);
-            runs.Add(summary);
+            resultsFile.TryGet(test.Name, out var baseline);
+            return (Test: test, Baseline: baseline);
+        }).ToList();
 
-            if (write && summary.ShouldUpdateResults && summary.Result is not null && resultsFile.Set(test.Name, summary.Result))
+        BettererRunSummary[] summaries;
+        if (maxDegreeOfParallelism <= 1 || inputs.Count <= 1)
+        {
+            summaries = new BettererRunSummary[inputs.Count];
+            for (var i = 0; i < inputs.Count; i++)
+            {
+                summaries[i] = await inputs[i].Test.RunAsync(inputs[i].Baseline, context, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        else
+        {
+            using var throttle = new SemaphoreSlim(maxDegreeOfParallelism);
+            summaries = await Task.WhenAll(inputs.Select(async input =>
+            {
+                await throttle.WaitAsync(cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    return await input.Test.RunAsync(input.Baseline, context, cancellationToken).ConfigureAwait(false);
+                }
+                finally
+                {
+                    throttle.Release();
+                }
+            })).ConfigureAwait(false);
+        }
+
+        // Apply writes single-threaded so the results file stays consistent.
+        var changed = false;
+        foreach (var summary in summaries)
+        {
+            if (write && summary.ShouldUpdateResults && summary.Result is not null && resultsFile.Set(summary.Name, summary.Result))
             {
                 changed = true;
             }
@@ -36,6 +65,6 @@ public static class BettererRunner
             await resultsFile.SaveAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        return new BettererSuiteSummary { Runs = runs };
+        return new BettererSuiteSummary { Runs = summaries.ToList() };
     }
 }

@@ -8,11 +8,10 @@ and to add `.NET`-native capabilities on top.
 > coverlet and friends. The "what to build" sections below map each `betterer`
 > concept onto its idiomatic .NET counterpart.
 
-> **Progress:** ✅ Phases 0-3 complete — the engine, the xUnit adapter, the built-in integrations
-> (Regex; Roslyn diagnostics/analyzers/syntax-queries; coverage; NetArchTest), and the `betterernet`
-> CLI (init/start/ci/watch/precommit/results, filters, reporters, config-assembly loading) are in
-> place. ▶️ Phase 4 (merge driver, caching, parallelism) is next.
-> Section 1 below describes the pre-Phase-0 baseline for the gap analysis.
+> **Progress:** ✅ Phases 0-4 — the engine, the xUnit adapter, the built-in integrations, the
+> `betterernet` CLI, the results-file merge (command + git automerge driver), and `--workers`
+> parallelism are in place. ▶️ Remaining: `--cache` incremental runs (needs a per-file API) and the
+> Phase 5 value-adds. Section 1 below describes the pre-Phase-0 baseline for the gap analysis.
 
 ---
 
@@ -161,9 +160,13 @@ BettererNet.Core          # engine: tests, constraints, goals, results file, sta
 - ☐ (Minor, deferred) `--strict` is parsed but currently a no-op; `--reporter <package>` (custom
   reporter loaded by name) and richer `watch` ergonomics.
 
-### Phase 4 — Merge & cache
-`merge` command + automerge git driver (`init --automerge`); `--cache`/`--cachePath`
-change-detection; `--workers` parallelism.
+### Phase 4 — Merge & cache — mostly complete
+- ✅ `BettererResultsMerge` + the `merge` command (git-driver form) — tightest-baseline merge of
+  `.betterer.results` (numbers→min, arrays/objects→intersection); `init --automerge` writes the
+  `.gitattributes` entry and configures the git merge driver.
+- ✅ `--workers` parallelism — `BettererRunner` runs tests concurrently and applies writes serially.
+- ☐ `--cache` / `--cachePath` incremental runs — needs a small per-file API so file tests can skip
+  unchanged files (deferred).
 
 ### Phase 5 — Value-adds (see §6).
 
@@ -185,10 +188,10 @@ change-detection; `--workers` parallelism.
 
 ## 7. Recommended next step
 
-Phases 0-3 are complete: the engine, the xUnit adapter, the built-in integrations (Regex; Roslyn
-diagnostics/analyzers/syntax-queries; coverage; NetArchTest), and the `betterernet` CLI — which runs
-a suite from a compiled config assembly with start/ci/watch/precommit/results, filters, and
-reporters — are in place, verified end-to-end and covered by 75 tests.
+Phases 0-4 are in place: the engine, the xUnit adapter, the built-in integrations, the `betterernet`
+CLI, the results-file merge (command + git automerge driver), and `--workers` parallelism — covered
+end-to-end by 85 tests.
 
-**Phase 4 (merge & cache)** is next: a `betterer merge` command plus a git automerge driver for the
-results file, `--cache` change-detection to skip unchanged files, and `--workers` parallelism.
+What's left: `--cache` incremental runs (a small per-file API so file tests can skip unchanged
+files), then the **Phase 5 value-adds** — an MSBuild task, a nullable-adoption preset, SARIF
+import/export, CI/PR reporters, ownership/budgets, and a trend report.

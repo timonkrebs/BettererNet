@@ -75,6 +75,10 @@ public sealed class BettererResultsFile
         return new BettererResultsFile(path, results);
     }
 
+    /// <summary>Create an empty, in-memory results file for <paramref name="path"/>; persist it with <see cref="SaveAsync"/>.</summary>
+    public static BettererResultsFile Create(string path) =>
+        new(path, new SortedDictionary<string, JsonNode>(StringComparer.Ordinal));
+
     /// <summary>Get the stored (canonical) result for a test, if one exists.</summary>
     public bool TryGet(string name, [NotNullWhen(true)] out JsonNode? value)
     {

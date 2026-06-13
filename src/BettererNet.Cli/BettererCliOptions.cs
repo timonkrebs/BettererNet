@@ -18,6 +18,9 @@ public sealed class BettererCliOptions
     /// <summary>Suppress the default reporter.</summary>
     public bool Silent { get; init; }
 
+    /// <summary>Maximum number of tests to run concurrently. 1 (default) runs sequentially.</summary>
+    public int Workers { get; init; } = 1;
+
     /// <summary>An explicit reporter. When null, one is chosen from <see cref="Silent"/>.</summary>
     public IBettererReporter? Reporter { get; init; }
 }

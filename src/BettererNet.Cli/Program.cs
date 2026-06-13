@@ -3,10 +3,10 @@ using BettererNet.Cli;
 
 var argList = args.ToList();
 
-// `init` scaffolds a config and needs no assembly.
-if (argList is ["init", ..])
+// `init` and `merge` need no config assembly; let BettererCli handle them.
+if (argList is ["init", ..] or ["merge", ..])
 {
-    return Init(Directory.GetCurrentDirectory());
+    return await BettererCli.RunAsync(argList, []);
 }
 
 // Extract `--config <assembly>` (the compiled config that supplies the tests).
@@ -42,31 +42,3 @@ if (configPath is not null)
 }
 
 return await BettererCli.RunAsync(argList, tests);
-
-static int Init(string directory)
-{
-    var path = Path.Combine(directory, "BettererConfig.cs");
-    if (File.Exists(path))
-    {
-        Console.WriteLine($"{path} already exists.");
-        return 0;
-    }
-
-    File.WriteAllText(path, """
-        using System.Collections.Generic;
-        using BettererNet;
-
-        // Build this into an assembly, then run: betterernet --config <assembly>.dll ci
-        public sealed class BettererConfig : IBettererSuiteProvider
-        {
-            public IEnumerable<IBettererTest> GetTests()
-            {
-                yield return BettererRegexTest.Create("NoTodos", "TODO", new[] { "**/*.cs" });
-            }
-        }
-        """);
-
-    Console.WriteLine($"Created {path}.");
-    Console.WriteLine("Reference the BettererNet packages, build it, then run: betterernet --config <assembly> ci");
-    return 0;
-}
