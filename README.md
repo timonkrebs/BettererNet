@@ -3,8 +3,9 @@
 Allows incremental improvements of .NET architecture for large teams, or a legacy codebase.
 Inspired by [betterer](https://github.com/phenomnomnominal/betterer) but for .NET.
 
-> **Status:** early development. **Phase 0 (Foundation) is complete** — see [ROADMAP.md](ROADMAP.md)
-> for the full plan towards feature parity with `betterer` and the .NET-native extensions on top.
+> **Status:** functional parity with `betterer`'s core, plus .NET-native extensions. See
+> **[DOCUMENTATION.md](DOCUMENTATION.md)** for the full user guide, and [ROADMAP.md](ROADMAP.md) for
+> the plan and what's implemented.
 
 ## How it works
 
