@@ -46,8 +46,8 @@ Targets `net5.0` (EOL). Net-net: BettererNet today is *"snapshot a list of named
 
 ## 3. Architecture: hybrid (shared core + CLI + xUnit adapter)
 
-`betterer` is CLI-first; BettererNet's current xUnit-assertion style is a genuinely nice .NET
-ergonomic. We keep both by building a rich **core library** and exposing it through two
+`betterer` is CLI-first; BettererNet's current xUnit-assertion style is genuinely nice .NET
+ergonomics. We keep both by building a rich **core library** and exposing it through two
 front-ends that share it:
 
 ```
@@ -174,7 +174,7 @@ BettererNet.Core          # engine: tests, constraints, goals, results file, sta
 
 ## 6. Features worth adding *on top* of parity (.NET-native)
 
-1. **MSBuild / `dotnet build` task** — run betterer in the build; fail on regression with no separate step.
+1. **MSBuild / `dotnet build` task** — run BettererNet in the build; fail on regression with no separate step.
 2. **Roslyn syntax-query test as a headline feature** — .NET's answer to `tsquery` is genuinely more powerful than the JS original; lean into it.
 3. **Nullable-reference-type adoption preset** — turnkey "incrementally enable `#nullable`" recipe (the canonical .NET migration pain point).
 4. **SARIF import/export** — ingest any analyzer that emits SARIF (huge ecosystem) and export for GitHub Code Scanning.
