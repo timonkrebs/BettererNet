@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "results": {
+    "AsyncMethodsMustEndWithSuffix_MatchesFound": [
+      "SampleProject.BadMethods.BadMethod",
+      "SampleProject.BadMethods.BadMethod2",
+      "SampleProject.BadMethods.BadMethod3",
+      "SampleProject.BadMethods.BadMethod4"
+    ],
+    "DoNotHaveInterfacePrefix_MatchesFound": [
+      "SampleProject.BadInterface",
+      "SampleProject.BadInterfaceC"
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>BettererNet</RootNamespace>
+    <AssemblyName>BettererNet.Core</AssemblyName>
+  </PropertyGroup>
+
+</Project>

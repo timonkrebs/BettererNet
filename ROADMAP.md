@@ -8,6 +8,11 @@ and to add `.NET`-native capabilities on top.
 > coverlet and friends. The "what to build" sections below map each `betterer`
 > concept onto its idiomatic .NET counterpart.
 
+> **Progress:** ✅ Phases 0-4 — the engine, the xUnit adapter, the built-in integrations, the
+> `betterernet` CLI, the results-file merge (command + git automerge driver), and `--workers`
+> parallelism are in place. ▶️ Remaining: `--cache` incremental runs (needs a per-file API) and the
+> Phase 5 value-adds. Section 1 below describes the pre-Phase-0 baseline for the gap analysis.
+
 ---
 
 ## 1. Where BettererNet is today
@@ -41,8 +46,8 @@ Targets `net5.0` (EOL). Net-net: BettererNet today is *"snapshot a list of named
 
 ## 3. Architecture: hybrid (shared core + CLI + xUnit adapter)
 
-`betterer` is CLI-first; BettererNet's current xUnit-assertion style is a genuinely nice .NET
-ergonomic. We keep both by building a rich **core library** and exposing it through two
+`betterer` is CLI-first; BettererNet's current xUnit-assertion style is genuinely nice .NET
+ergonomics. We keep both by building a rich **core library** and exposing it through two
 front-ends that share it:
 
 ```
@@ -111,33 +116,57 @@ BettererNet.Core          # engine: tests, constraints, goals, results file, sta
 
 ## 5. Phased roadmap
 
-### Phase 0 — Foundation
-- Retarget to `net8.0`/`net9.0` (LTS); drop EOL `net5.0`.
-- Restructure into `BettererNet.Core` / `.Cli` / `.Xunit` / `integrations/*` (see §3).
-- Single `.betterer.results` reader/writer (stable, diff-friendly serialization).
+### Phase 0 — Foundation ✅ complete
+- ✅ Retargeted to `net10.0` (LTS) via a root `Directory.Build.props`; dropped EOL `net5.0`.
+- ✅ Restructured to `src/` (`BettererNet.Core` / `.Xunit` / `.Cli`), `samples/`, `tools/`,
+  `tests/`, with a solution at the repo root. (`integrations/*` land in Phase 2.)
+- ✅ Single `.betterer.results` reader/writer (`BettererResultsFile`) — deterministic,
+  sorted, indented, atomic writes; diff-stable across runs.
+- ✅ Migrated the xUnit adapter onto the single results file; added a `BETTERER_UPDATE`
+  seeding escape hatch and a `tests/BettererNet.Tests` suite (19 tests covering the core,
+  the adapter ratchet/isolation semantics, and concurrent writes).
 
-### Phase 1 — Core engine (parity backbone) ⭐ highest leverage
-- `BettererTest<T>` with `Test` / `Constraint` / `Goal` / `Deadline`.
-- Constraints (`Bigger` / `Smaller` / custom) and the full result-state machine
+### Phase 1 — Core engine (parity backbone) ⭐ highest leverage ✅ complete
+- ✅ `BettererTest<T>` with `Test` / `Constraint` / `Goal` / `Deadline`.
+- ✅ Constraints (`Bigger` / `Smaller` / `SetBased`) and the full result-state machine
   (`new/better/same/worse/complete/updated/skipped/failed/expired`).
-- `BettererFileTest` with per-file issues and **file-hash + issue-hash** tracking.
-- `RunSummary` / `SuiteSummary`; refactor the existing xUnit path onto the engine.
+- ✅ `BettererRunSummary` / `BettererSuiteSummary` + `BettererRunner`; the xUnit adapter is
+  refactored onto the engine and now runs any `IBettererTest`; counting tests via `BettererCountTest`.
+- ✅ Results file generalised to store any serialized value (schema v2, canonical & diff-stable,
+  with a v1 read shim).
+- ✅ `BettererFileTest` with per-file issues (line/column/length/message) and a stable, line-
+  independent **issue-hash**, plus a hash-based file diff (`BettererFileIssues.Diff`).
+  (Content-based **file-hash** tracking lands with the Phase 2 Roslyn integration that reads files.)
 
 > Every downstream capability depends on this abstraction + the hashed single results file,
 > which BettererNet entirely lacks today. Built-in tests and CLI modes are comparatively
 > mechanical once this exists.
 
-### Phase 2 — Built-in tests
-Order by effort/value: Regex → Roslyn analyzer → Roslyn compiler/nullable → Roslyn syntax-query
-→ Coverage → NetArchTest wrapper.
+### Phase 2 — Built-in tests ✅ complete
+- ✅ `BettererRegexTest` (`BettererNet.Regex`) — count regex matches across globbed files.
+- ✅ `BettererRoslynTest` (`BettererNet.Roslyn`) — compiler diagnostics (nullable/typescript
+  analog), analyzers (eslint analog), and syntax queries (tsquery analog) over C# source.
+- ✅ `BettererCoverageTest` (`BettererNet.Coverage`) — track uncovered lines from a Cobertura report.
+- ✅ `BettererArchTest` (`BettererNet.NetArchTest`) — wrap a NetArchTest rule as a first-class test.
+- ☐ (Refinement, deferred) MSBuild-workspace loading + content-based file hashing for the Roslyn
+  tests — they currently operate on explicit source paths / a `Compilation`.
 
-### Phase 3 — CLI & modes
-`dotnet tool` with `init` / `start` / `ci` / `watch` / `precommit` / `results`; `--filter`,
-`--exclude`/`--ignore`, `--update`, `--strict`; `IBettererReporter` + default/CI/silent reporters.
+### Phase 3 — CLI & modes ✅ complete
+- ✅ `betterernet` `dotnet tool` with `init` / `start` / `ci` / `watch` / `precommit` / `results`,
+  loading tests from a compiled config assembly (`IBettererSuiteProvider`) via a plugin
+  `AssemblyLoadContext` (verified end-to-end).
+- ✅ `--filter` (regex, negatable with `!`), `--results`, `--update`, `--silent`; `IBettererReporter`
+  with default console and silent reporters.
+- ☐ (Minor, deferred) `--strict` is parsed but currently a no-op; `--reporter <package>` (custom
+  reporter loaded by name) and richer `watch` ergonomics.
 
-### Phase 4 — Merge & cache
-`merge` command + automerge git driver (`init --automerge`); `--cache`/`--cachePath`
-change-detection; `--workers` parallelism.
+### Phase 4 — Merge & cache — mostly complete
+- ✅ `BettererResultsMerge` + the `merge` command (git-driver form) — tightest-baseline merge of
+  `.betterer.results` (numbers→min, arrays/objects→intersection); `init --automerge` writes the
+  `.gitattributes` entry and configures the git merge driver.
+- ✅ `--workers` parallelism — `BettererRunner` runs tests concurrently and applies writes serially.
+- ☐ `--cache` / `--cachePath` incremental runs — needs a small per-file API so file tests can skip
+  unchanged files (deferred).
 
 ### Phase 5 — Value-adds (see §6).
 
@@ -145,7 +174,7 @@ change-detection; `--workers` parallelism.
 
 ## 6. Features worth adding *on top* of parity (.NET-native)
 
-1. **MSBuild / `dotnet build` task** — run betterer in the build; fail on regression with no separate step.
+1. **MSBuild / `dotnet build` task** — run BettererNet in the build; fail on regression with no separate step.
 2. **Roslyn syntax-query test as a headline feature** — .NET's answer to `tsquery` is genuinely more powerful than the JS original; lean into it.
 3. **Nullable-reference-type adoption preset** — turnkey "incrementally enable `#nullable`" recipe (the canonical .NET migration pain point).
 4. **SARIF import/export** — ingest any analyzer that emits SARIF (huge ecosystem) and export for GitHub Code Scanning.
@@ -159,6 +188,10 @@ change-detection; `--workers` parallelism.
 
 ## 7. Recommended next step
 
-Start **Phase 1 (core engine)**. It is the dependency root for parity, and converting the
-existing xUnit helper to ride on the new `BettererTest` + single hashed results file proves the
-design end-to-end before the CLI and integrations are layered on.
+Phases 0-4 are in place: the engine, the xUnit adapter, the built-in integrations, the `betterernet`
+CLI, the results-file merge (command + git automerge driver), and `--workers` parallelism — covered
+end-to-end by 85 tests.
+
+What's left: `--cache` incremental runs (a small per-file API so file tests can skip unchanged
+files), then the **Phase 5 value-adds** — an MSBuild task, a nullable-adoption preset, SARIF
+import/export, CI/PR reporters, ownership/budgets, and a trend report.
