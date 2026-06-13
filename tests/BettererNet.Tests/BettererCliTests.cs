@@ -193,7 +193,7 @@ public sealed class BettererCliTests : IDisposable
         var code = BettererCli.Init(_dir, automerge: true);
 
         Assert.Equal(0, code);
-        Assert.True(File.Exists(Path.Combine(_dir, "BettererConfig.cs")));
+        Assert.True(File.Exists(Path.Combine(_dir, "betterer.json")));
         Assert.Contains("merge=betterer", File.ReadAllText(Path.Combine(_dir, ".gitattributes")));
     }
 

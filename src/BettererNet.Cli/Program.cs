@@ -3,13 +3,13 @@ using BettererNet.Cli;
 
 var argList = args.ToList();
 
-// `init` and `merge` need no config assembly; let BettererCli handle them.
+// `init` and `merge` need no config; let BettererCli handle them.
 if (argList is ["init", ..] or ["merge", ..])
 {
     return await BettererCli.RunAsync(argList, []);
 }
 
-// Extract `--config <assembly>` (the compiled config that supplies the tests).
+// Resolve the config: an explicit `--config`, otherwise an auto-detected `betterer.json`.
 string? configPath = null;
 for (var i = 0; i < argList.Count; i++)
 {
@@ -27,18 +27,35 @@ for (var i = 0; i < argList.Count; i++)
     }
 }
 
+configPath ??= File.Exists("betterer.json") ? "betterer.json" : null;
+
 IEnumerable<IBettererTest> tests = [];
+string? declaredResults = null;
 if (configPath is not null)
 {
     try
     {
-        tests = ConfigLoader.Load(configPath);
+        if (BettererConfigFile.IsConfigFile(configPath))
+        {
+            (tests, declaredResults) = BettererConfigFile.Load(configPath);
+        }
+        else
+        {
+            tests = ConfigLoader.Load(configPath);
+        }
     }
     catch (Exception exception)
     {
         Console.Error.WriteLine(exception.Message);
         return 2;
     }
+}
+
+// A results path declared in the config is a default; an explicit --results on the CLI wins.
+if (declaredResults is not null && !argList.Any(arg => arg is "--results" or "-r"))
+{
+    argList.Add("--results");
+    argList.Add(declaredResults);
 }
 
 return await BettererCli.RunAsync(argList, tests);

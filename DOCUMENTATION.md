@@ -243,8 +243,37 @@ betterernet --config MyConfig.dll start  # the CLI records on first run too
 
 ## The CLI
 
-The `betterernet` tool runs a suite defined in a **compiled config assembly** — a class library
-that implements `IBettererSuiteProvider`:
+Install the global tool:
+
+```bash
+dotnet tool install --global BettererNet.Cli   # run as `betterernet`
+```
+
+### Declarative config (`betterer.json`)
+
+The simplest setup needs **no code** — a `betterer.json` describing the data-driven test types
+(regex, coverage, SARIF). `betterernet ci` auto-detects `betterer.json` in the working directory (or
+pass `--config path/to/betterer.json`); relative paths resolve against the file.
+
+```json
+{
+  "results": ".betterer.results",
+  "tests": {
+    "NoTodos":   { "type": "regex",    "pattern": "TODO", "includes": ["**/*.cs"], "ignoreCase": false },
+    "Coverage":  { "type": "coverage", "report": "coverage.cobertura.xml", "goalZero": true },
+    "Analyzers": { "type": "sarif",    "report": "analysis.sarif", "levels": ["error"] }
+  }
+}
+```
+
+Each test's key is its name; `goalZero: true` sets a goal of zero issues. `betterernet init`
+scaffolds a starter `betterer.json`.
+
+### Compiled config (advanced)
+
+Tests that need code — Roslyn syntax queries, NetArchTest rules, custom `BettererTest<T>` — come from
+a **compiled config assembly**: a class library that implements `IBettererSuiteProvider`, passed with
+`--config My.dll`:
 
 ```csharp
 using System.Collections.Generic;

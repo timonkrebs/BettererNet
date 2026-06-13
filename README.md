@@ -148,30 +148,37 @@ await new Betterer().AssertAsync(BettererSarifTest.Create("Analyzers", "analysis
 
 ## CLI
 
-The `betterernet` tool (`BettererNet.Cli`) runs a suite defined in a **compiled config assembly** —
-a class library that implements `IBettererSuiteProvider`:
+Install the tool, then define a suite — declaratively or in code:
 
-```csharp
-public sealed class BettererConfig : IBettererSuiteProvider
+```bash
+dotnet tool install --global BettererNet.Cli   # run as `betterernet`
+```
+
+**Declarative `betterer.json`** (no code; covers the data-driven tests — regex, coverage, SARIF):
+
+```json
 {
-    public IEnumerable<IBettererTest> GetTests()
-    {
-        yield return BettererRegexTest.Create("NoTodos", "TODO", new[] { "**/*.cs" });
-    }
+  "results": ".betterer.results",
+  "tests": {
+    "NoTodos":   { "type": "regex",    "pattern": "TODO", "includes": ["**/*.cs"] },
+    "Coverage":  { "type": "coverage", "report": "coverage.cobertura.xml", "goalZero": true },
+    "Analyzers": { "type": "sarif",    "report": "analysis.sarif", "levels": ["error"] }
+  }
 }
 ```
 
-Build it, then point the tool at the assembly:
+`betterernet ci` auto-detects `betterer.json` in the working directory. Tests that need code (Roslyn
+syntax queries, NetArchTest rules) use a **compiled config assembly** — a class library implementing
+`IBettererSuiteProvider`, passed with `--config My.dll`.
 
 ```bash
-betterernet --config path/to/MyConfig.dll start     # run; record improvements, fail on regressions
-betterernet --config path/to/MyConfig.dll ci        # fail if the results file is out of date
-betterernet --config path/to/MyConfig.dll watch     # re-run on .cs changes
-betterernet --config path/to/MyConfig.dll precommit # run, then `git add` the results
-betterernet results                                 # print the current results file
-betterernet init                                    # scaffold a starter BettererConfig.cs
-betterernet init --automerge                         # also configure the git merge driver
-betterernet merge <base> <ours> <theirs>            # resolve a .betterer.results conflict
+betterernet start      # run; record improvements, fail on regressions
+betterernet ci         # fail if the results file is out of date or regressed (no write)
+betterernet watch      # re-run on .cs changes
+betterernet precommit  # run, then `git add` the results
+betterernet results    # print the current results file
+betterernet init       # scaffold a starter betterer.json (--automerge also sets up the git merge driver)
+betterernet merge <base> <ours> <theirs>   # resolve a .betterer.results conflict
 ```
 
 Common options: `--results <path>`, `--filter <regex>` (repeatable; a leading `!` negates),

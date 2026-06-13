@@ -10,9 +10,9 @@ and to add `.NET`-native capabilities on top.
 
 > **Progress:** ✅ Phases 0-4 complete and Phase 5 underway — the engine, the xUnit adapter, the
 > built-in integrations (now including SARIF import), the `betterernet` CLI with
-> merge/automerge/`--workers`, and a GitHub Actions reporter are in place. ▶️ Next: **Phase 6
-> (adoption & insights)** — NuGet packaging + `dotnet tool`, declarative config, and actionable diff
-> reporting (see §5). Section 1 below describes the pre-Phase-0 baseline.
+> merge/automerge/`--workers`, a GitHub Actions reporter, **NuGet packaging + the global tool, and a
+> declarative `betterer.json`** are in place. ▶️ Next in **Phase 6**: actionable diff reporting, then
+> MSBuild-workspace loading (see §5). Section 1 below describes the pre-Phase-0 baseline.
 
 ---
 
@@ -181,12 +181,13 @@ BettererNet.Core          # engine: tests, constraints, goals, results file, sta
 At functional parity, the highest-value work is making BettererNet *adoptable* and its output
 *actionable* rather than adding more parity. Tiers are roughly highest-value-first.
 
-**Tier 1 — adoption blockers (nothing else matters until these ship):**
-- ☐ **NuGet packages + `dotnet tool install -g betterernet`** — today everything is consumable only
-  via source/project reference, so publishing the packages and the global tool is the gating item.
-  Include a `dotnet new betterer` template for the config project.
-- ☐ **Declarative config (`betterer.json` / `.yaml`)** — run the built-in test types (regex, Roslyn,
-  coverage, SARIF) without compiling a C# config assembly: drop a file and run `betterernet ci`.
+**Tier 1 — adoption blockers ✅ done:**
+- ✅ **NuGet packages + global tool** — all eight projects pack with shared metadata; the CLI ships as
+  `dotnet tool install -g BettererNet.Cli` (run `betterernet`) and bundles the data-driven
+  integrations. (A dedicated `dotnet new` template is still nice-to-have; `betterernet init` scaffolds
+  a `betterer.json` for now.)
+- ✅ **Declarative `betterer.json`** — run the data-driven tests (regex, coverage, SARIF) with no
+  compiled config; `betterernet ci` auto-detects the file. (Roslyn/NetArchTest still use a compiled config.)
 
 **Tier 2 — make the output actionable:**
 - ☐ **Surface the diff in reporters** — `BettererFileIssues.Diff` already knows which issues are new
@@ -229,14 +230,16 @@ Phases 0-4 are complete and Phase 5 is partly done: the engine, the xUnit adapte
 integrations (Regex; Roslyn; coverage; NetArchTest; **SARIF import**), the `betterernet` CLI with
 merge/automerge/`--workers`, and a **GitHub Actions reporter** — all covered end-to-end by the test suite.
 
-The next focus is **Phase 6 (adoption & insights)**, highest-value first:
+**Phase 6 Tier 1 (adoption) is done** — NuGet packages, the `betterernet` global tool, and a
+declarative `betterer.json`, verified end-to-end (packed, installed, ran a config with no compiled
+assembly).
 
-1. **Ship it** — NuGet packages + `dotnet tool install -g betterernet` (+ a `dotnet new` template).
-   Until this lands, none of the built features are reachable by real users.
-2. **Lower the barrier** — a declarative `betterer.json` config so the built-in tests need no
-   compiled C# config assembly.
-3. **Make failures actionable** — surface the per-issue diff (what's new vs fixed) in the console
-   and GitHub reporters; the data already exists on `BettererRunSummary`.
+Next, highest-value first:
 
-After that: MSBuild-workspace loading for the Roslyn tests (turns them from "demo over source files"
-into "analyse my real solution"), then the remaining Phase 5/6 value-adds.
+1. **Make failures actionable** — surface the per-issue diff (what's new vs fixed) in the console and
+   GitHub reporters; the data already exists on `BettererRunSummary`.
+2. **MSBuild-workspace loading** for the Roslyn tests — analyse a real `.sln`/`.csproj` instead of
+   explicit source paths (also unlocks content-based file hashing).
+
+Then the remaining Phase 6 value-adds (trend report, PR-comment reporter, more test-framework
+adapters, ownership/budgets, …).

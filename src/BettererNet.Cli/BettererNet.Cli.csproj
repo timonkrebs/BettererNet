@@ -5,15 +5,20 @@
     <RootNamespace>BettererNet.Cli</RootNamespace>
     <AssemblyName>betterernet</AssemblyName>
 
-    <!-- Packaging foundation for the `dotnet betterernet` global tool. Commands land in Phase 3. -->
+    <!-- Distributed as a global tool: `dotnet tool install -g BettererNet.Cli`, run as `betterernet`. -->
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>betterernet</ToolCommandName>
     <PackageId>BettererNet.Cli</PackageId>
     <IsPackable>true</IsPackable>
+    <Description>The betterernet CLI — run BettererNet suites (init/start/ci/watch/precommit/results/merge), from a betterer.json or a compiled config.</Description>
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- The data-driven integrations are bundled so `betterer.json` works out of the box. -->
     <ProjectReference Include="..\BettererNet.Core\BettererNet.Core.csproj" />
+    <ProjectReference Include="..\BettererNet.Regex\BettererNet.Regex.csproj" />
+    <ProjectReference Include="..\BettererNet.Coverage\BettererNet.Coverage.csproj" />
+    <ProjectReference Include="..\BettererNet.Sarif\BettererNet.Sarif.csproj" />
   </ItemGroup>
 
 </Project>

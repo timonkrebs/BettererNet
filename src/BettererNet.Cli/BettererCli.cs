@@ -164,10 +164,10 @@ public static class BettererCli
         return 0;
     }
 
-    /// <summary>Scaffold a starter config and, with <paramref name="automerge"/>, configure the git merge driver.</summary>
+    /// <summary>Scaffold a starter <c>betterer.json</c> and, with <paramref name="automerge"/>, configure the git merge driver.</summary>
     public static int Init(string directory, bool automerge = false)
     {
-        var configPath = Path.Combine(directory, "BettererConfig.cs");
+        var configPath = Path.Combine(directory, "betterer.json");
         if (File.Exists(configPath))
         {
             Console.WriteLine($"{configPath} already exists.");
@@ -184,7 +184,7 @@ public static class BettererCli
             Console.WriteLine("Configured automerge for .betterer.results (.gitattributes + git merge driver).");
         }
 
-        Console.WriteLine("Reference the BettererNet packages, build the config, then run: betterernet --config <assembly> ci");
+        Console.WriteLine("Run: betterernet ci   (betterer.json is auto-detected; richer tests can use a compiled config via --config)");
         return 0;
     }
 
@@ -404,16 +404,11 @@ public static class BettererCli
     }
 
     private const string ConfigTemplate = """
-        using System.Collections.Generic;
-        using BettererNet;
-
-        // Build this into an assembly, then run: betterernet --config <assembly>.dll ci
-        public sealed class BettererConfig : IBettererSuiteProvider
         {
-            public IEnumerable<IBettererTest> GetTests()
-            {
-                yield return BettererRegexTest.Create("NoTodos", "TODO", new[] { "**/*.cs" });
-            }
+          "results": ".betterer.results",
+          "tests": {
+            "NoTodos": { "type": "regex", "pattern": "TODO", "includes": ["**/*.cs"] }
+          }
         }
         """;
 }
