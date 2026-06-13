@@ -140,6 +140,9 @@ await new Betterer().AssertAsync(
 await new Betterer().AssertAsync(BettererArchTest.Create("Layering", () =>
     Types.InAssembly(assembly).That().ResideInNamespace("App.Domain")
         .ShouldNot().HaveDependencyOn("App.Infrastructure").GetResult()));
+
+// SARIF: import any analyzer's report (the whole SARIF ecosystem) as a file test.
+await new Betterer().AssertAsync(BettererSarifTest.Create("Analyzers", "analysis.sarif"));
 ```
 
 ## CLI
@@ -171,7 +174,9 @@ betterernet merge <base> <ours> <theirs>            # resolve a .betterer.result
 ```
 
 Common options: `--results <path>`, `--filter <regex>` (repeatable; a leading `!` negates),
-`--update` (accept regressions), `--workers <n>` (run tests in parallel), `--silent`.
+`--update` (accept regressions), `--workers <n>` (parallelism),
+`--reporter <console|github|silent>` (the `github` reporter emits CI annotations + a step-summary
+table), `--silent`.
 
 With `--automerge` configured, git resolves `.betterer.results` conflicts automatically by taking
 the tightest baseline (so no branch's improvements are lost).

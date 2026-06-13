@@ -8,10 +8,10 @@ and to add `.NET`-native capabilities on top.
 > coverlet and friends. The "what to build" sections below map each `betterer`
 > concept onto its idiomatic .NET counterpart.
 
-> **Progress:** ✅ Phases 0-4 — the engine, the xUnit adapter, the built-in integrations, the
-> `betterernet` CLI, the results-file merge (command + git automerge driver), and `--workers`
-> parallelism are in place. ▶️ Remaining: `--cache` incremental runs (needs a per-file API) and the
-> Phase 5 value-adds. Section 1 below describes the pre-Phase-0 baseline for the gap analysis.
+> **Progress:** ✅ Phases 0-4 complete and Phase 5 underway — the engine, the xUnit adapter, the
+> built-in integrations (now including SARIF import), the `betterernet` CLI with
+> merge/automerge/`--workers`, and a GitHub Actions reporter are in place. ▶️ Remaining: `--cache`
+> and the other Phase 5 value-adds. Section 1 below describes the pre-Phase-0 baseline.
 
 ---
 
@@ -168,7 +168,13 @@ BettererNet.Core          # engine: tests, constraints, goals, results file, sta
 - ☐ `--cache` / `--cachePath` incremental runs — needs a small per-file API so file tests can skip
   unchanged files (deferred).
 
-### Phase 5 — Value-adds (see §6).
+### Phase 5 — Value-adds — in progress
+- ✅ **SARIF import** (`BettererNet.Sarif`) — turn any SARIF analyzer report into a file test,
+  unlocking the whole SARIF-emitting ecosystem (Roslyn analyzers, `dotnet format`, etc.).
+- ✅ **GitHub Actions reporter** — `::error` annotations + a `$GITHUB_STEP_SUMMARY` table, selected
+  with `--reporter github` (which also wired up the `--reporter` flag).
+- ☐ MSBuild task, nullable-adoption preset, reporters for other CI systems, dotnet-format /
+  EditorConfig integration, per-test ownership & budgets, HTML/markdown trend report (see §6).
 
 ---
 
@@ -188,10 +194,11 @@ BettererNet.Core          # engine: tests, constraints, goals, results file, sta
 
 ## 7. Recommended next step
 
-Phases 0-4 are in place: the engine, the xUnit adapter, the built-in integrations, the `betterernet`
-CLI, the results-file merge (command + git automerge driver), and `--workers` parallelism — covered
-end-to-end by 85 tests.
+Phases 0-4 are complete and Phase 5 is underway: the engine, the xUnit adapter, the built-in
+integrations (Regex; Roslyn; coverage; NetArchTest; **SARIF import**), the `betterernet` CLI with
+merge/automerge/`--workers`, and a **GitHub Actions reporter** — covered end-to-end by 93 tests.
 
 What's left: `--cache` incremental runs (a small per-file API so file tests can skip unchanged
-files), then the **Phase 5 value-adds** — an MSBuild task, a nullable-adoption preset, SARIF
-import/export, CI/PR reporters, ownership/budgets, and a trend report.
+files), and the remaining **Phase 5 value-adds** — an MSBuild task, a nullable-adoption preset,
+reporters for other CI systems, dotnet-format/EditorConfig integration, ownership/budgets, and a
+trend report.

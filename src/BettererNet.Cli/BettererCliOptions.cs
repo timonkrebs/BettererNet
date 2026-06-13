@@ -21,6 +21,9 @@ public sealed class BettererCliOptions
     /// <summary>Maximum number of tests to run concurrently. 1 (default) runs sequentially.</summary>
     public int Workers { get; init; } = 1;
 
+    /// <summary>Name of a built-in reporter (<c>console</c>, <c>github</c>, <c>silent</c>). Ignored when <see cref="Reporter"/> is set.</summary>
+    public string? ReporterName { get; init; }
+
     /// <summary>An explicit reporter. When null, one is chosen from <see cref="Silent"/>.</summary>
     public IBettererReporter? Reporter { get; init; }
 }

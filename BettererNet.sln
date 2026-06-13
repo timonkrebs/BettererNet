@@ -33,6 +33,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BettererNet.Coverage", "src
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BettererNet.NetArchTest", "src\BettererNet.NetArchTest\BettererNet.NetArchTest.csproj", "{8C0DD3FD-2393-4806-A2C7-018B2B6AB1FD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BettererNet.Sarif", "src\BettererNet.Sarif\BettererNet.Sarif.csproj", "{387E6F5F-936E-4E3A-A58E-AED3F3F2A88B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -175,6 +177,18 @@ Global
 		{8C0DD3FD-2393-4806-A2C7-018B2B6AB1FD}.Release|x64.Build.0 = Release|Any CPU
 		{8C0DD3FD-2393-4806-A2C7-018B2B6AB1FD}.Release|x86.ActiveCfg = Release|Any CPU
 		{8C0DD3FD-2393-4806-A2C7-018B2B6AB1FD}.Release|x86.Build.0 = Release|Any CPU
+		{387E6F5F-936E-4E3A-A58E-AED3F3F2A88B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{387E6F5F-936E-4E3A-A58E-AED3F3F2A88B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{387E6F5F-936E-4E3A-A58E-AED3F3F2A88B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{387E6F5F-936E-4E3A-A58E-AED3F3F2A88B}.Debug|x64.Build.0 = Debug|Any CPU
+		{387E6F5F-936E-4E3A-A58E-AED3F3F2A88B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{387E6F5F-936E-4E3A-A58E-AED3F3F2A88B}.Debug|x86.Build.0 = Debug|Any CPU
+		{387E6F5F-936E-4E3A-A58E-AED3F3F2A88B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{387E6F5F-936E-4E3A-A58E-AED3F3F2A88B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{387E6F5F-936E-4E3A-A58E-AED3F3F2A88B}.Release|x64.ActiveCfg = Release|Any CPU
+		{387E6F5F-936E-4E3A-A58E-AED3F3F2A88B}.Release|x64.Build.0 = Release|Any CPU
+		{387E6F5F-936E-4E3A-A58E-AED3F3F2A88B}.Release|x86.ActiveCfg = Release|Any CPU
+		{387E6F5F-936E-4E3A-A58E-AED3F3F2A88B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -191,5 +205,6 @@ Global
 		{B437D89D-EBD6-4740-96A8-2A51D6FD16C8} = {E9B464E1-C8B7-4FA8-AF7B-8B633B2FF39E}
 		{A8166C0A-4035-47F5-9A88-B6C1760D2392} = {E9B464E1-C8B7-4FA8-AF7B-8B633B2FF39E}
 		{8C0DD3FD-2393-4806-A2C7-018B2B6AB1FD} = {E9B464E1-C8B7-4FA8-AF7B-8B633B2FF39E}
+		{387E6F5F-936E-4E3A-A58E-AED3F3F2A88B} = {E9B464E1-C8B7-4FA8-AF7B-8B633B2FF39E}
 	EndGlobalSection
 EndGlobal
