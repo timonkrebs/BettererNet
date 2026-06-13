@@ -1,0 +1,332 @@
+# BettererNet — User Documentation
+
+BettererNet tracks the *amount* of something undesirable in your codebase (architecture
+violations, analyzer warnings, uncovered lines, banned patterns, …), records it as a **baseline**,
+and then **fails when it gets worse** while **locking in every improvement**. It's the .NET
+counterpart of [`betterer`](https://github.com/phenomnomnominal/betterer).
+
+> Status: pre-release. Consume the projects via project/source reference for now; NuGet packages
+> are planned.
+
+## Table of contents
+
+1. [Core idea](#core-idea)
+2. [Prerequisites & projects](#prerequisites--projects)
+3. [Quick start (xUnit)](#quick-start-xunit)
+4. [Run states](#run-states)
+5. [Built-in test types](#built-in-test-types)
+6. [Writing a custom test](#writing-a-custom-test)
+7. [The results file](#the-results-file)
+8. [Seeding a baseline](#seeding-a-baseline)
+9. [The CLI](#the-cli)
+10. [Merge & automerge](#merge--automerge)
+11. [Reporters & CI](#reporters--ci)
+12. [FAQ](#faq)
+
+---
+
+## Core idea
+
+A Betterer test produces a value (usually a set of issues, or a count). On the first accepted run,
+that value becomes the **baseline**, stored in a `.betterer.results` file you commit. On later runs:
+
+- **worse than baseline** → the test **fails** (the baseline is not changed);
+- **better than baseline** → the test **passes** and the baseline **ratchets down** to the new value;
+- **same** → passes, nothing is written.
+
+This lets a large team agree "no new violations of X, and chip away at the existing ones" and have
+it enforced automatically — without a long-lived branch.
+
+## Prerequisites & projects
+
+- **.NET SDK 10.0** or newer.
+
+| Project | Purpose |
+|---|---|
+| `BettererNet.Core` | The engine: tests, constraints, goals, results file, runner. |
+| `BettererNet.Xunit` | Assert against the baseline from xUnit tests (`dotnet test`). |
+| `BettererNet.Cli` | The `betterernet` tool (`init`/`start`/`ci`/`watch`/`precommit`/`results`/`merge`). |
+| `BettererNet.Regex` | `BettererRegexTest` — count regex matches across files. |
+| `BettererNet.Roslyn` | `BettererRoslynTest` — compiler diagnostics, analyzers, syntax queries. |
+| `BettererNet.Coverage` | `BettererCoverageTest` — uncovered lines from a Cobertura report. |
+| `BettererNet.NetArchTest` | `BettererArchTest` — wrap a NetArchTest rule. |
+| `BettererNet.Sarif` | `BettererSarifTest` — import any SARIF report. |
+
+All test types live in the `BettererNet` namespace.
+
+## Quick start (xUnit)
+
+Reference `BettererNet.Xunit` (and the integration package you need) from your test project, then
+assert against the baseline:
+
+```csharp
+using BettererNet;
+using NetArchTest.Rules;
+using Xunit;
+
+public class ArchitectureTests
+{
+    private static readonly System.Reflection.Assembly Target = typeof(MyMarker).Assembly;
+
+    [Fact]
+    public async Task InterfacesStartWithI()
+    {
+        await new Betterer().AssertAsync(BettererArchTest.Create("InterfacesStartWithI", () =>
+            Types.InAssembly(Target).That().AreInterfaces()
+                .Should().HaveNameStartingWith("I").GetResult()));
+    }
+}
+```
+
+`new Betterer()` stores the result under the **calling method's name** in `.betterer.results` in the
+test project directory. Override either with the constructor:
+
+```csharp
+new Betterer(testName: "CustomName", resultsPath: "/path/to/.betterer.results")
+```
+
+There are two `AssertAsync` overloads:
+
+- `AssertAsync(BettererResult result, bool allowFirstFailure = false)` — `BettererResult` carries a
+  `List<string> FailingTypeNames`; new names fail, removed names ratchet down.
+- `AssertAsync(IBettererTest test, bool allowFirstFailure = false)` — run any engine test
+  (counting, file, regex, Roslyn, coverage, SARIF, custom). The test's own name is the key.
+
+`allowFirstFailure: true` records the reported issues as the baseline on the first run instead of
+failing.
+
+## Run states
+
+Every run resolves to one of these (surfaced on `BettererRunSummary.Status`):
+
+| State | Meaning | Baseline | xUnit result |
+|---|---|---|---|
+| `New` | first run, no baseline | recorded (unless it fails first) | fails unless `allowFirstFailure`/`BETTERER_UPDATE` |
+| `Better` | improved | ratcheted down | passes |
+| `Same` | unchanged | untouched | passes |
+| `Worse` | regressed | **unchanged** | **fails** |
+| `Complete` | met its goal | recorded | passes |
+| `Updated` | worse, but update was requested | overwritten | passes |
+| `Skipped` | not run | untouched | passes |
+| `Failed` | the test function threw | untouched | fails (rethrows) |
+| `Expired` | deadline passed without meeting the goal | progress kept | fails |
+
+## Built-in test types
+
+Each factory returns an `IBettererTest` you pass to `AssertAsync` (xUnit) or return from a CLI
+config (see [The CLI](#the-cli)). `goal` and `deadline` are optional on all of them.
+
+### Regex
+
+Count matches of a pattern across globbed files — ban an API or burn down TODOs.
+
+```csharp
+BettererRegexTest.Create("NoConsoleWriteLine", @"Console\.WriteLine", new[] { "**/*.cs" });
+// signature: Create(name, pattern, includes, baseDirectory?, options?, matchTimeout?, goal?, deadline?)
+```
+
+### Roslyn (compiler diagnostics, analyzers, syntax queries)
+
+```csharp
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+
+// Compiler diagnostics — adopt nullable reference types incrementally.
+BettererRoslynTest.Diagnostics("Nullable", sourceFiles,
+    filter: d => d.Id.StartsWith("CS8"),
+    compilationOptions: new CSharpCompilationOptions(
+        OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
+
+// Analyzers — track any DiagnosticAnalyzer's findings.
+BettererRoslynTest.Analyzers("Style", sourceFiles, analyzers);
+
+// Syntax query — count nodes you want to eliminate (the tsquery analog).
+BettererRoslynTest.SyntaxQuery("NoGoto", sourceFiles, node => node is GotoStatementSyntax);
+```
+
+`sourceFiles` is a list of `.cs` paths. (Whole-solution loading via MSBuild is on the roadmap.)
+
+### Coverage
+
+Track uncovered lines from a Cobertura report (e.g. `dotnet test --collect:"XPlat Code Coverage"`):
+
+```csharp
+BettererCoverageTest.Create("Coverage", "coverage.cobertura.xml", goal: BettererFileTest.NoIssues);
+```
+
+### Architecture (NetArchTest)
+
+```csharp
+BettererArchTest.Create("Layering", () =>
+    Types.InAssembly(assembly).That().ResideInNamespace("App.Domain")
+        .ShouldNot().HaveDependencyOn("App.Infrastructure").GetResult());
+```
+
+### SARIF
+
+Import any SARIF 2.1.0 report — the whole static-analysis ecosystem:
+
+```csharp
+BettererSarifTest.Create("Analyzers", "analysis.sarif");
+// optional: levels (default {"warning","error"}), e.g. new HashSet<string> { "error" }
+```
+
+### Counting
+
+When you just have a number to drive down:
+
+```csharp
+BettererCountTest.Create("OpenTodos", CountTodos, goal: 0);
+```
+
+## Writing a custom test
+
+The generic primitive is `BettererTest<T>`:
+
+```csharp
+new BettererTest<long>(
+    name: "MyMetric",
+    test: () => MeasureSomething(),        // Func<T> or Func<CancellationToken, Task<T>>
+    constraint: BettererConstraints.Smaller, // compares current vs baseline
+    goal: value => value == 0,             // optional
+    deadline: new DateTimeOffset(2026, 12, 31, 0, 0, 0, TimeSpan.Zero)); // optional
+```
+
+Built-in constraints: `BettererConstraints.Smaller` and `Bigger` (for `long`), and
+`BettererConstraints.SetBased<T>()` (any new element is a regression). Provide your own
+`BettererConstraint<T>` delegate `(current, baseline) => BettererConstraintResult` for custom logic.
+Values are serialized to the results file via `IBettererSerializer<T>` (JSON by default).
+
+For file-oriented tests, produce a `BettererFileIssues`:
+
+```csharp
+BettererFileTest.Create("MyFileTest", () =>
+{
+    var issues = new BettererFileIssues();
+    issues.Add("src/Foo.cs", line: 10, column: 5, length: 3, message: "bad thing");
+    return issues;
+}, goal: BettererFileTest.NoIssues);
+```
+
+Each issue gets a stable, line-independent hash, so issues are tracked even as code moves; the
+constraint is the total issue count (fewer is better).
+
+## The results file
+
+`.betterer.results` is a single JSON file you **commit**. Schema v2:
+
+```json
+{
+  "version": 2,
+  "results": {
+    "InterfacesStartWithI": [ "MyApp.BadInterface" ],
+    "OpenTodos": 3
+  }
+}
+```
+
+It is deterministic (sorted keys and values) and only rewritten when a result actually changes, so
+diffs stay small. v1 files are read transparently.
+
+## Seeding a baseline
+
+A test that reports issues with **no baseline fails by default** — accepting a baseline is an
+explicit choice. Record the current state with the `BETTERER_UPDATE` environment variable:
+
+```bash
+BETTERER_UPDATE=1 dotnet test          # xUnit
+betterernet --config MyConfig.dll start  # the CLI records on first run too
+```
+
+`BETTERER_UPDATE` also accepts regressions (like betterer's `--update`). Commit the generated
+`.betterer.results`; from then on, run normally.
+
+## The CLI
+
+The `betterernet` tool runs a suite defined in a **compiled config assembly** — a class library
+that implements `IBettererSuiteProvider`:
+
+```csharp
+using System.Collections.Generic;
+using BettererNet;
+
+public sealed class BettererConfig : IBettererSuiteProvider
+{
+    public IEnumerable<IBettererTest> GetTests()
+    {
+        yield return BettererRegexTest.Create("NoTodos", "TODO", new[] { "**/*.cs" });
+        yield return BettererCoverageTest.Create("Coverage", "coverage.cobertura.xml");
+    }
+}
+```
+
+Build it, then:
+
+| Command | Behavior |
+|---|---|
+| `start` (default) | Run; record improvements; **fail** on a regression. |
+| `ci` | Run **without writing**; fail if the results file is out of date or regressed. |
+| `watch` | Run, then re-run on `.cs` changes. |
+| `precommit` | Run, then `git add` the results file on success. |
+| `results` | Print the current results file. |
+| `init` | Scaffold a starter `BettererConfig.cs` (`--automerge` also sets up the git merge driver). |
+| `merge` | Resolve a `.betterer.results` conflict (git merge-driver form). |
+
+```bash
+betterernet --config path/to/MyConfig.dll start
+betterernet --config path/to/MyConfig.dll ci
+```
+
+Options:
+
+| Option | Meaning |
+|---|---|
+| `--config <assembly>` / `-c` | The compiled config that supplies the tests. |
+| `--results <path>` / `-r` | Results file path (default `.betterer.results`). |
+| `--filter <regex>` / `-f` | Run only matching test names; repeatable; a leading `!` negates. |
+| `--update` / `-u` | Accept regressions and record them. |
+| `--workers <n>` / `-w` | Run up to *n* tests concurrently. |
+| `--reporter <name>` / `-R` | `console` (default), `github`, or `silent` (case-insensitive). |
+| `--silent` / `-s` | Suppress reporter output. |
+
+Exit codes: `0` success, `1` a test failed / CI diff, `2` bad arguments or config load error.
+
+## Merge & automerge
+
+`.betterer.results` changes on many branches, so merges can conflict. `betterernet merge` does a
+**tightest-baseline** merge — numbers take the minimum, sets/files take their intersection — so no
+branch's improvements are lost. `betterernet init --automerge` writes a `.gitattributes` entry and
+configures the git merge driver so conflicts resolve automatically:
+
+```
+.betterer.results merge=betterer
+```
+
+## Reporters & CI
+
+- **console** (default): a per-test line plus a summary.
+- **github**: emits `::error` annotations for failing tests and appends a markdown table to
+  `$GITHUB_STEP_SUMMARY` — use `--reporter github` in GitHub Actions.
+- **silent**: no output.
+
+A minimal GitHub Actions step:
+
+```yaml
+- run: betterernet --config path/to/MyConfig.dll ci --reporter github
+```
+
+(For the xUnit workflow, just run `dotnet test`; failures appear as normal test failures.)
+
+## FAQ
+
+**Do I commit `.betterer.results`?** Yes — it is the shared baseline.
+
+**A test fails on a fresh checkout with no baseline.** That's by design. Run once with
+`BETTERER_UPDATE=1` (or `allowFirstFailure: true`) to record the baseline, then commit it.
+
+**xUnit vs CLI — which do I use?** Either, or both: they share the same engine and results file.
+xUnit fits teams already running `dotnet test`; the CLI fits dedicated `ci`/`watch`/`merge` flows.
+
+**How do I temporarily run one test?** `--filter <regex>` on the CLI, or your normal xUnit filters.
+
+See [ROADMAP.md](ROADMAP.md) for what's implemented and what's planned.

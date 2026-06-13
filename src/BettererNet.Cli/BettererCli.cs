@@ -196,6 +196,7 @@ public static class BettererCli
         var results = BettererResultsFile.DefaultFileName;
         var filters = new List<string>();
         var workers = 1;
+        string? reporter = null;
         bool update = false, strict = false, silent = false;
 
         for (var i = 0; i < args.Count; i++)
@@ -241,6 +242,20 @@ public static class BettererCli
                     silent = true;
                     break;
 
+                case "-R" or "--reporter":
+                    if (++i >= args.Count)
+                    {
+                        return (command, new BettererCliOptions(), "Missing value for --reporter.");
+                    }
+
+                    reporter = args[i].ToLowerInvariant();
+                    if (reporter is not ("github" or "console" or "silent"))
+                    {
+                        return (command, new BettererCliOptions(), $"Unknown reporter '{args[i]}'. Expected: console, github, silent.");
+                    }
+
+                    break;
+
                 default:
                     if (arg.StartsWith('-'))
                     {
@@ -266,6 +281,7 @@ public static class BettererCli
             Strict = strict,
             Silent = silent,
             Workers = workers,
+            ReporterName = reporter,
         };
         return (command, options, null);
     }
@@ -300,8 +316,25 @@ public static class BettererCli
             (positives.Count == 0 || positives.Any(pattern => pattern.IsMatch(test.Name))));
     }
 
-    private static IBettererReporter ResolveReporter(BettererCliOptions options) =>
-        options.Reporter ?? (options.Silent ? new BettererSilentReporter() : new BettererConsoleReporter());
+    private static IBettererReporter ResolveReporter(BettererCliOptions options)
+    {
+        if (options.Reporter is not null)
+        {
+            return options.Reporter;
+        }
+
+        if (options.Silent)
+        {
+            return new BettererSilentReporter();
+        }
+
+        return options.ReporterName?.ToLowerInvariant() switch
+        {
+            "github" => new BettererGitHubActionsReporter(),
+            "silent" => new BettererSilentReporter(),
+            _ => new BettererConsoleReporter(),
+        };
+    }
 
     private static void Report(IBettererReporter reporter, BettererSuiteSummary summary)
     {

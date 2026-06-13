@@ -197,6 +197,32 @@ public sealed class BettererCliTests : IDisposable
         Assert.Contains("merge=betterer", File.ReadAllText(Path.Combine(_dir, ".gitattributes")));
     }
 
+    [Fact]
+    public void Parse_ReadsReporter()
+    {
+        var (_, options, error) = BettererCli.Parse(["ci", "--reporter", "github"]);
+
+        Assert.Null(error);
+        Assert.Equal("github", options.ReporterName);
+    }
+
+    [Fact]
+    public void Parse_UnknownReporter_ReturnsError()
+    {
+        var (_, _, error) = BettererCli.Parse(["--reporter", "teamcity"]);
+
+        Assert.NotNull(error);
+    }
+
+    [Fact]
+    public void Parse_Reporter_IsCaseInsensitive()
+    {
+        var (_, options, error) = BettererCli.Parse(["--reporter", "GitHub"]);
+
+        Assert.Null(error);
+        Assert.Equal("github", options.ReporterName);
+    }
+
     private sealed class FakeReporter : IBettererReporter
     {
         public void ReportRun(BettererRunSummary run)
