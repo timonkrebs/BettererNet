@@ -10,8 +10,9 @@ and to add `.NET`-native capabilities on top.
 
 > **Progress:** ✅ Phases 0-4 complete and Phase 5 underway — the engine, the xUnit adapter, the
 > built-in integrations (now including SARIF import), the `betterernet` CLI with
-> merge/automerge/`--workers`, and a GitHub Actions reporter are in place. ▶️ Remaining: `--cache`
-> and the other Phase 5 value-adds. Section 1 below describes the pre-Phase-0 baseline.
+> merge/automerge/`--workers`, and a GitHub Actions reporter are in place. ▶️ Next: **Phase 6
+> (adoption & insights)** — NuGet packaging + `dotnet tool`, declarative config, and actionable diff
+> reporting (see §5). Section 1 below describes the pre-Phase-0 baseline.
 
 ---
 
@@ -176,6 +177,36 @@ BettererNet.Core          # engine: tests, constraints, goals, results file, sta
 - ☐ MSBuild task, nullable-adoption preset, reporters for other CI systems, dotnet-format /
   EditorConfig integration, per-test ownership & budgets, HTML/markdown trend report (see §6).
 
+### Phase 6 — Adoption & insights (next) — prioritized
+At functional parity, the highest-value work is making BettererNet *adoptable* and its output
+*actionable* rather than adding more parity. Tiers are roughly highest-value-first.
+
+**Tier 1 — adoption blockers (nothing else matters until these ship):**
+- ☐ **NuGet packages + `dotnet tool install -g betterernet`** — today everything is consumable only
+  via source/project reference, so publishing the packages and the global tool is the gating item.
+  Include a `dotnet new betterer` template for the config project.
+- ☐ **Declarative config (`betterer.json` / `.yaml`)** — run the built-in test types (regex, Roslyn,
+  coverage, SARIF) without compiling a C# config assembly: drop a file and run `betterernet ci`.
+
+**Tier 2 — make the output actionable:**
+- ☐ **Surface the diff in reporters** — `BettererFileIssues.Diff` already knows which issues are new
+  vs fixed; show them (console detail + GitHub `::error file=,line=` annotations). Low effort, high value.
+- ☐ **PR-comment reporter** — a single PR comment summarising what got better/worse.
+- ☐ **Trend report / history** — store run history and emit an HTML/markdown burn-down chart.
+
+**Tier 3 — depth & performance:**
+- ☐ **MSBuild-workspace loading** for the Roslyn tests — analyse a real `.sln`/`.csproj` instead of
+  explicit source paths; also unlocks content-based file hashing. The most impactful single feature.
+- ☐ **`--cache`** incremental runs (carried over from Phase 4).
+- ☐ **Nullable-adoption preset** and **`dotnet format` / EditorConfig** integration.
+- ☐ **SARIF export** to complement import (feeds GitHub Code Scanning).
+
+**Tier 4 — ecosystem & robustness:**
+- ☐ **More test-framework adapters** (NUnit, MSTest, TUnit) — xUnit only today.
+- ☐ **Per-test ownership & budgets** — owners/teams and per-area budgets.
+- ☐ **Cross-process-safe results file** — the xUnit adapter's lock is process-wide, so parallel
+  test *projects* could still race.
+
 ---
 
 ## 6. Features worth adding *on top* of parity (.NET-native)
@@ -194,11 +225,18 @@ BettererNet.Core          # engine: tests, constraints, goals, results file, sta
 
 ## 7. Recommended next step
 
-Phases 0-4 are complete and Phase 5 is underway: the engine, the xUnit adapter, the built-in
+Phases 0-4 are complete and Phase 5 is partly done: the engine, the xUnit adapter, the built-in
 integrations (Regex; Roslyn; coverage; NetArchTest; **SARIF import**), the `betterernet` CLI with
 merge/automerge/`--workers`, and a **GitHub Actions reporter** — all covered end-to-end by the test suite.
 
-What's left: `--cache` incremental runs (a small per-file API so file tests can skip unchanged
-files), and the remaining **Phase 5 value-adds** — an MSBuild task, a nullable-adoption preset,
-reporters for other CI systems, dotnet-format/EditorConfig integration, ownership/budgets, and a
-trend report.
+The next focus is **Phase 6 (adoption & insights)**, highest-value first:
+
+1. **Ship it** — NuGet packages + `dotnet tool install -g betterernet` (+ a `dotnet new` template).
+   Until this lands, none of the built features are reachable by real users.
+2. **Lower the barrier** — a declarative `betterer.json` config so the built-in tests need no
+   compiled C# config assembly.
+3. **Make failures actionable** — surface the per-issue diff (what's new vs fixed) in the console
+   and GitHub reporters; the data already exists on `BettererRunSummary`.
+
+After that: MSBuild-workspace loading for the Roslyn tests (turns them from "demo over source files"
+into "analyse my real solution"), then the remaining Phase 5/6 value-adds.
