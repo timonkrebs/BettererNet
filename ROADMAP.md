@@ -8,9 +8,9 @@ and to add `.NET`-native capabilities on top.
 > coverlet and friends. The "what to build" sections below map each `betterer`
 > concept onto its idiomatic .NET counterpart.
 
-> **Progress:** ✅ Phase 0 complete. ▶️ Phase 1 in progress — the generic engine (tests,
-> constraints, goals, deadlines, result-state machine, runner) and the xUnit-adapter refactor
-> are done; `BettererFileTest` with issue hashing is the next increment.
+> **Progress:** ✅ Phase 0 & Phase 1 complete — the generic engine (tests, constraints, goals,
+> deadlines, result-state machine, runner, and file tests with issue hashing) and the xUnit
+> adapter are in place. ▶️ Phase 2 (built-in test integrations) is next.
 > Section 1 below describes the pre-Phase-0 baseline for the gap analysis.
 
 ---
@@ -126,16 +126,17 @@ BettererNet.Core          # engine: tests, constraints, goals, results file, sta
   seeding escape hatch and a `tests/BettererNet.Tests` suite (19 tests covering the core,
   the adapter ratchet/isolation semantics, and concurrent writes).
 
-### Phase 1 — Core engine (parity backbone) ⭐ highest leverage — in progress
+### Phase 1 — Core engine (parity backbone) ⭐ highest leverage ✅ complete
 - ✅ `BettererTest<T>` with `Test` / `Constraint` / `Goal` / `Deadline`.
 - ✅ Constraints (`Bigger` / `Smaller` / `SetBased`) and the full result-state machine
   (`new/better/same/worse/complete/updated/skipped/failed/expired`).
 - ✅ `BettererRunSummary` / `BettererSuiteSummary` + `BettererRunner`; the xUnit adapter is
-  refactored onto the engine; counting tests via `BettererCountTest`.
+  refactored onto the engine and now runs any `IBettererTest`; counting tests via `BettererCountTest`.
 - ✅ Results file generalised to store any serialized value (schema v2, canonical & diff-stable,
   with a v1 read shim).
-- ☐ `BettererFileTest` with per-file issues and **file-hash + issue-hash** tracking, plus a
-  file-level diff (next increment).
+- ✅ `BettererFileTest` with per-file issues (line/column/length/message) and a stable, line-
+  independent **issue-hash**, plus a hash-based file diff (`BettererFileIssues.Diff`).
+  (Content-based **file-hash** tracking lands with the Phase 2 Roslyn integration that reads files.)
 
 > Every downstream capability depends on this abstraction + the hashed single results file,
 > which BettererNet entirely lacks today. Built-in tests and CLI modes are comparatively
@@ -173,11 +174,12 @@ change-detection; `--workers` parallelism.
 
 ## 7. Recommended next step
 
-The Phase 1 engine backbone is in place: `BettererTest<T>` with constraints/goals/deadlines, the
-full result-state machine, `BettererRunner` + `BettererSuiteSummary`, a generalised diff-stable
-results file (schema v2), counting tests, and the xUnit adapter refactored onto the engine — all
-covered by the test suite (41 tests).
+Phases 0 and 1 are complete: the solution is on `net10.0` with the full engine — `BettererTest<T>`
+with constraints/goals/deadlines, the result-state machine, `BettererRunner` + `BettererSuiteSummary`,
+file tests with issue hashing and diffing, a diff-stable results file (schema v2), and the xUnit
+adapter (now generic over any `IBettererTest`) — all covered by 50 tests.
 
-The next increment is **`BettererFileTest`**: per-file issues (line/column/length/message) with
-**file-hash + issue-hash** tracking so issues survive code moving around, plus a file-level diff.
-That unlocks Phase 2's Roslyn/analyzer/coverage integrations, which are all file tests.
+**Phase 2 (built-in tests)** is next, each implemented as a `BettererFileTest`:
+Regex → Roslyn analyzer → Roslyn compiler/nullable → Roslyn syntax-query → coverage → NetArchTest
+wrapper. The Regex test is the easiest first win; the Roslyn integrations also add content-based
+file hashing.

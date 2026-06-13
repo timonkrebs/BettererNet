@@ -120,4 +120,23 @@ public sealed class BettererTests : IDisposable
 
         Assert.False(File.Exists(ResultsPath));
     }
+
+    [Fact]
+    public async Task GenericOverload_CountTest_RegressionThrows()
+    {
+        await new Betterer("Count", ResultsPath).AssertAsync(BettererCountTest.Create("Count", () => 2), allowFirstFailure: true);
+
+        await Assert.ThrowsAnyAsync<XunitException>(
+            () => new Betterer("Count", ResultsPath).AssertAsync(BettererCountTest.Create("Count", () => 5)));
+    }
+
+    [Fact]
+    public async Task GenericOverload_CountTest_ImprovementIsRecorded()
+    {
+        await new Betterer("Count", ResultsPath).AssertAsync(BettererCountTest.Create("Count", () => 5), allowFirstFailure: true);
+        await new Betterer("Count", ResultsPath).AssertAsync(BettererCountTest.Create("Count", () => 3));
+
+        var file = await BettererResultsFile.LoadAsync(ResultsPath);
+        Assert.Equal(3, file.Results["Count"].GetValue<long>());
+    }
 }

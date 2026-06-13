@@ -79,8 +79,9 @@ public class ArchitectureTests
 ### Seeding the first baseline
 
 By default, a test that reports issues with **no existing baseline fails** — accepting a new
-baseline is meant to be an explicit choice. To record the current issues as the baseline, run
-once with the `BETTERER_UPDATE` environment variable set:
+baseline is meant to be an explicit choice. Set the `BETTERER_UPDATE` environment variable to
+record the current results as the baseline (it also accepts regressions, like betterer's
+`--update`):
 
 ```bash
 BETTERER_UPDATE=1 dotnet test
@@ -88,6 +89,25 @@ BETTERER_UPDATE=1 dotnet test
 
 Commit the generated `.betterer.results`. From then on, run `dotnet test` normally: it passes
 while issues stay the same or shrink, and fails when new issues appear.
+
+### Other test types
+
+The same adapter runs any engine test, so you can also assert counting and file tests:
+
+```csharp
+// Counting test: keep a number from growing (e.g. compiler warnings), aiming for zero.
+await new Betterer().AssertAsync(
+    BettererCountTest.Create("CompilerWarnings", CountWarnings, goal: 0));
+
+// File test: track issues per file (line/column/length/message), with a stable,
+// line-independent hash so issues survive code moving around.
+await new Betterer().AssertAsync(BettererFileTest.Create("Analyzer", () =>
+{
+    var issues = new BettererFileIssues();
+    issues.Add("Foo.cs", line: 10, column: 5, length: 3, message: "CA1822: mark member static");
+    return issues;
+}));
+```
 
 ## CLI
 

@@ -36,6 +36,7 @@ public sealed class BettererTestTests
         var summary = await BettererCountTest.Create("t", () => 10).RunAsync(Count(10), Context());
 
         Assert.Equal(BettererRunStatus.Same, summary.Status);
+        Assert.False(summary.ShouldUpdateResults);
     }
 
     [Fact]

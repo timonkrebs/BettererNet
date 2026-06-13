@@ -109,7 +109,9 @@ public sealed class BettererTest<T> : IBettererTest
 
                 case BettererConstraintResult.Same:
                     status = BettererRunStatus.Same;
-                    shouldUpdate = true;
+                    // The result is unchanged, so the on-disk baseline is already correct; leaving
+                    // it untouched keeps the results file diff-stable even if line numbers shifted.
+                    shouldUpdate = false;
                     break;
 
                 default:
