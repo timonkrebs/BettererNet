@@ -1,3 +1,4 @@
+using System.Xml;
 using System.Xml.Linq;
 
 namespace BettererNet;
@@ -20,7 +21,17 @@ public static class BettererCoverageTest
     private static BettererFileIssues Parse(string reportPath)
     {
         var issues = new BettererFileIssues();
-        var document = XDocument.Load(reportPath);
+
+        // Parse the (potentially untrusted) report without resolving external entities or
+        // expanding a DTD, guarding against XXE and entity-expansion (billion-laughs) attacks.
+        var settings = new XmlReaderSettings
+        {
+            DtdProcessing = DtdProcessing.Ignore,
+            XmlResolver = null,
+            MaxCharactersFromEntities = 0,
+        };
+        using var reader = XmlReader.Create(reportPath, settings);
+        var document = XDocument.Load(reader);
 
         // A source file can be split across multiple <class> elements (partial classes), so
         // dedupe by (file, line) to avoid counting an uncovered line more than once.

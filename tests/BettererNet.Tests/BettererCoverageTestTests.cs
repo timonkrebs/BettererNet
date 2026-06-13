@@ -69,4 +69,22 @@ public sealed class BettererCoverageTestTests : IDisposable
 
         Assert.Equal(1, issues.TotalCount);
     }
+
+    [Fact]
+    public async Task ParsesReportWithExternalDoctype_WithoutFetchingIt()
+    {
+        // Real Cobertura reports often carry a SYSTEM DOCTYPE; the hardened reader must tolerate
+        // it without resolving the external DTD (no network, no XXE).
+        var path = WriteReport("""
+            <?xml version="1.0"?>
+            <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
+            <coverage><packages><package name="P"><classes>
+              <class name="A" filename="A.cs"><lines><line number="1" hits="0"/></lines></class>
+            </classes></package></packages></coverage>
+            """);
+
+        var issues = await Run(BettererCoverageTest.Create("cov", path));
+
+        Assert.Equal(1, issues.TotalCount);
+    }
 }

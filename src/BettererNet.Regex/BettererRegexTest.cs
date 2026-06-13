@@ -10,6 +10,9 @@ namespace BettererNet;
 /// </summary>
 public static class BettererRegexTest
 {
+    // Fixed, safe pattern — compiled once and reused rather than recompiled per match.
+    private static readonly Regex Whitespace = new(@"\s+", RegexOptions.None, TimeSpan.FromSeconds(1));
+
     /// <summary>
     /// Create a regex test. Each match becomes a file issue, so the test fails when new matches
     /// appear and ratchets down as they are removed.
@@ -99,7 +102,7 @@ public static class BettererRegexTest
 
     private static string Summarize(string value)
     {
-        var collapsed = Regex.Replace(value, @"\s+", " ").Trim();
+        var collapsed = Whitespace.Replace(value, " ").Trim();
         return collapsed.Length <= 80 ? collapsed : collapsed[..77] + "...";
     }
 }
