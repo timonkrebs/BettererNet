@@ -8,9 +8,10 @@ and to add `.NET`-native capabilities on top.
 > coverlet and friends. The "what to build" sections below map each `betterer`
 > concept onto its idiomatic .NET counterpart.
 
-> **Progress:** ✅ Phases 0-2 complete — the generic engine, the xUnit adapter, and the built-in
-> integrations (Regex; Roslyn diagnostics/analyzers/syntax-queries; coverage; NetArchTest) are in
-> place. ▶️ Phase 3 (the CLI: init/start/ci/watch/merge) is next.
+> **Progress:** ✅ Phases 0-3 complete — the engine, the xUnit adapter, the built-in integrations
+> (Regex; Roslyn diagnostics/analyzers/syntax-queries; coverage; NetArchTest), and the `betterernet`
+> CLI (init/start/ci/watch/precommit/results, filters, reporters, config-assembly loading) are in
+> place. ▶️ Phase 4 (merge driver, caching, parallelism) is next.
 > Section 1 below describes the pre-Phase-0 baseline for the gap analysis.
 
 ---
@@ -151,9 +152,14 @@ BettererNet.Core          # engine: tests, constraints, goals, results file, sta
 - ☐ (Refinement, deferred) MSBuild-workspace loading + content-based file hashing for the Roslyn
   tests — they currently operate on explicit source paths / a `Compilation`.
 
-### Phase 3 — CLI & modes
-`dotnet tool` with `init` / `start` / `ci` / `watch` / `precommit` / `results`; `--filter`,
-`--exclude`/`--ignore`, `--update`, `--strict`; `IBettererReporter` + default/CI/silent reporters.
+### Phase 3 — CLI & modes ✅ complete
+- ✅ `betterernet` `dotnet tool` with `init` / `start` / `ci` / `watch` / `precommit` / `results`,
+  loading tests from a compiled config assembly (`IBettererSuiteProvider`) via a plugin
+  `AssemblyLoadContext` (verified end-to-end).
+- ✅ `--filter` (regex, negatable with `!`), `--results`, `--update`, `--silent`; `IBettererReporter`
+  with default console and silent reporters.
+- ☐ (Minor, deferred) `--strict` is parsed but currently a no-op; `--reporter <package>` (custom
+  reporter loaded by name) and richer `watch` ergonomics.
 
 ### Phase 4 — Merge & cache
 `merge` command + automerge git driver (`init --automerge`); `--cache`/`--cachePath`
@@ -179,11 +185,10 @@ change-detection; `--workers` parallelism.
 
 ## 7. Recommended next step
 
-Phases 0-2 are complete: the engine, the xUnit adapter, and all the built-in integrations (Regex;
-Roslyn diagnostics/analyzers/syntax-queries; coverage; NetArchTest) are in place and covered by
-65 tests. The one deferred Phase 2 refinement is MSBuild-workspace loading for the Roslyn tests
-(whole-solution analysis, which also enables content-based file hashing).
+Phases 0-3 are complete: the engine, the xUnit adapter, the built-in integrations (Regex; Roslyn
+diagnostics/analyzers/syntax-queries; coverage; NetArchTest), and the `betterernet` CLI — which runs
+a suite from a compiled config assembly with start/ci/watch/precommit/results, filters, and
+reporters — are in place, verified end-to-end and covered by 75 tests.
 
-**Phase 3 (CLI & modes)** is next: a `dotnet betterernet` tool with `init` / `start` / `ci` /
-`watch` / `precommit` / `results`, test filters, and pluggable reporters — built on the existing
-`BettererRunner`.
+**Phase 4 (merge & cache)** is next: a `betterer merge` command plus a git automerge driver for the
+results file, `--cache` change-detection to skip unchanged files, and `--workers` parallelism.

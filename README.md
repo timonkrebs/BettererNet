@@ -144,11 +144,30 @@ await new Betterer().AssertAsync(BettererArchTest.Create("Layering", () =>
 
 ## CLI
 
-A `betterernet` tool skeleton ships in `BettererNet.Cli`. Today it summarises a results file:
+The `betterernet` tool (`BettererNet.Cli`) runs a suite defined in a **compiled config assembly** —
+a class library that implements `IBettererSuiteProvider`:
 
-```bash
-dotnet run --project src/BettererNet.Cli -- .betterer.results
+```csharp
+public sealed class BettererConfig : IBettererSuiteProvider
+{
+    public IEnumerable<IBettererTest> GetTests()
+    {
+        yield return BettererRegexTest.Create("NoTodos", "TODO", new[] { "**/*.cs" });
+    }
+}
 ```
 
-The `init` / `start` / `ci` / `watch` / `precommit` / `results` / `merge` commands arrive in a
-later phase — see [ROADMAP.md](ROADMAP.md).
+Build it, then point the tool at the assembly:
+
+```bash
+betterernet --config path/to/MyConfig.dll start     # run; record improvements, fail on regressions
+betterernet --config path/to/MyConfig.dll ci        # fail if the results file is out of date
+betterernet --config path/to/MyConfig.dll watch     # re-run on .cs changes
+betterernet --config path/to/MyConfig.dll precommit # run, then `git add` the results
+betterernet results                                 # print the current results file
+betterernet init                                    # scaffold a starter BettererConfig.cs
+```
+
+Common options: `--results <path>`, `--filter <regex>` (repeatable; a leading `!` negates),
+`--update` (accept regressions), `--silent`. The `merge` command arrives in Phase 4 — see
+[ROADMAP.md](ROADMAP.md).

@@ -1,34 +1,72 @@
-using System.Text.Json.Nodes;
 using BettererNet;
+using BettererNet.Cli;
 
-const string version = "0.1.0-alpha";
+var argList = args.ToList();
 
-Console.WriteLine($"BettererNet CLI v{version}");
-Console.WriteLine("Incremental improvement tracking for .NET — https://github.com/timonkrebs/BettererNet");
-Console.WriteLine();
-
-// Phase 0/1 skeleton: no real commands yet, but prove the Core wiring by summarising a
-// results file if one is present. The init/start/ci/watch/precommit/results/merge
-// commands arrive in Phase 3 (see ROADMAP.md).
-var resultsPath = args.Length > 0 ? args[0] : BettererResultsFile.DefaultFileName;
-
-if (File.Exists(resultsPath))
+// `init` scaffolds a config and needs no assembly.
+if (argList is ["init", ..])
 {
-    var results = await BettererResultsFile.LoadAsync(resultsPath);
-    Console.WriteLine($"Results file: {Path.GetFullPath(resultsPath)}");
-    Console.WriteLine($"Tracked tests: {results.Results.Count}");
-    foreach (var (name, value) in results.Results)
+    return Init(Directory.GetCurrentDirectory());
+}
+
+// Extract `--config <assembly>` (the compiled config that supplies the tests).
+string? configPath = null;
+for (var i = 0; i < argList.Count; i++)
+{
+    if (argList[i] is "--config" or "-c")
     {
-        var detail = value is JsonArray array ? $"{array.Count} issue(s)" : value.ToJsonString();
-        Console.WriteLine($"  - {name}: {detail}");
+        if (i + 1 >= argList.Count)
+        {
+            Console.Error.WriteLine("Missing value for --config.");
+            return 2;
+        }
+
+        configPath = argList[i + 1];
+        argList.RemoveRange(i, 2);
+        break;
     }
 }
-else
+
+IEnumerable<IBettererTest> tests = [];
+if (configPath is not null)
 {
-    Console.WriteLine($"No results file found at '{resultsPath}'.");
+    try
+    {
+        tests = ConfigLoader.Load(configPath);
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine(exception.Message);
+        return 2;
+    }
 }
 
-Console.WriteLine();
-Console.WriteLine("Commands (init, start, ci, watch, precommit, results, merge) arrive in a later phase — see ROADMAP.md.");
+return await BettererCli.RunAsync(argList, tests);
 
-return 0;
+static int Init(string directory)
+{
+    var path = Path.Combine(directory, "BettererConfig.cs");
+    if (File.Exists(path))
+    {
+        Console.WriteLine($"{path} already exists.");
+        return 0;
+    }
+
+    File.WriteAllText(path, """
+        using System.Collections.Generic;
+        using BettererNet;
+
+        // Build this into an assembly, then run: betterernet --config <assembly>.dll ci
+        public sealed class BettererConfig : IBettererSuiteProvider
+        {
+            public IEnumerable<IBettererTest> GetTests()
+            {
+                yield return BettererRegexTest.Create("NoTodos", "TODO", new[] { "**/*.cs" });
+            }
+        }
+        """);
+
+    Console.WriteLine($"Created {path}.");
+    Console.WriteLine("Reference the BettererNet packages, build it, then run: betterernet --config <assembly> ci");
+    return 0;
+}

@@ -22,6 +22,7 @@
     <ProjectReference Include="..\..\src\BettererNet.Roslyn\BettererNet.Roslyn.csproj" />
     <ProjectReference Include="..\..\src\BettererNet.Coverage\BettererNet.Coverage.csproj" />
     <ProjectReference Include="..\..\src\BettererNet.NetArchTest\BettererNet.NetArchTest.csproj" />
+    <ProjectReference Include="..\..\src\BettererNet.Cli\BettererNet.Cli.csproj" />
   </ItemGroup>
 
 </Project>
