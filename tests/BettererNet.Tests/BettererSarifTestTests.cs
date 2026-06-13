@@ -81,4 +81,36 @@ public sealed class BettererSarifTestTests : IDisposable
 
         Assert.Equal(0, issues.TotalCount);
     }
+
+    [Fact]
+    public async Task NormalizesFileUriToLocalPath()
+    {
+        var json = """
+            { "version": "2.1.0", "runs": [ { "results": [
+              { "ruleId": "X", "level": "warning", "message": { "text": "m" },
+                "locations": [ { "physicalLocation": { "artifactLocation": { "uri": "file:///work/src/App.cs" }, "region": { "startLine": 4 } } } ] }
+            ] } ] }
+            """;
+
+        var issues = await Run(BettererSarifTest.Create("sarif", WriteSarif(json)));
+
+        Assert.True(issues.Files.ContainsKey("/work/src/App.cs"));
+    }
+
+    [Fact]
+    public async Task ClampsMissingRegionToLineOne()
+    {
+        var json = """
+            { "version": "2.1.0", "runs": [ { "results": [
+              { "ruleId": "X", "level": "warning", "message": { "text": "m" },
+                "locations": [ { "physicalLocation": { "artifactLocation": { "uri": "A.cs" } } } ] }
+            ] } ] }
+            """;
+
+        var issues = await Run(BettererSarifTest.Create("sarif", WriteSarif(json)));
+
+        var issue = Assert.Single(issues.Files["A.cs"]);
+        Assert.Equal(1, issue.Line);
+        Assert.Equal(1, issue.Column);
+    }
 }

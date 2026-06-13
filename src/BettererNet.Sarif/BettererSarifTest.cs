@@ -56,8 +56,9 @@ public static class BettererSarifTest
                 }
 
                 var region = physical?["region"] as JsonObject;
-                var startLine = region?["startLine"]?.GetValue<int>() ?? 0;
-                var startColumn = region?["startColumn"]?.GetValue<int>() ?? 1;
+                // SARIF positions are 1-based; clamp so a missing/malformed region never yields line 0.
+                var startLine = Math.Max(1, region?["startLine"]?.GetValue<int>() ?? 1);
+                var startColumn = Math.Max(1, region?["startColumn"]?.GetValue<int>() ?? 1);
                 var endColumn = region?["endColumn"]?.GetValue<int>();
                 var length = endColumn is int end && end > startColumn ? end - startColumn : 0;
 
@@ -65,10 +66,22 @@ public static class BettererSarifTest
                 var text = result["message"]?["text"]?.GetValue<string>() ?? string.Empty;
                 var message = string.IsNullOrEmpty(ruleId) ? text : $"{ruleId}: {text}";
 
-                issues.Add(uri.Replace('\\', '/'), startLine, startColumn, length, message);
+                issues.Add(NormalizePath(uri), startLine, startColumn, length, message);
             }
         }
 
         return issues;
+    }
+
+    private static string NormalizePath(string uri)
+    {
+        // SARIF artifactLocation.uri is a URI, often emitted as file:///abs/path. Convert file URIs
+        // to a local path so keys line up with repo-relative file paths; leave relative URIs as-is.
+        if (Uri.TryCreate(uri, UriKind.Absolute, out var parsed) && parsed.IsFile)
+        {
+            return parsed.LocalPath.Replace('\\', '/');
+        }
+
+        return uri.Replace('\\', '/');
     }
 }

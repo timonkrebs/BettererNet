@@ -196,7 +196,7 @@ BettererNet.Core          # engine: tests, constraints, goals, results file, sta
 
 Phases 0-4 are complete and Phase 5 is underway: the engine, the xUnit adapter, the built-in
 integrations (Regex; Roslyn; coverage; NetArchTest; **SARIF import**), the `betterernet` CLI with
-merge/automerge/`--workers`, and a **GitHub Actions reporter** — covered end-to-end by 93 tests.
+merge/automerge/`--workers`, and a **GitHub Actions reporter** — all covered end-to-end by the test suite.
 
 What's left: `--cache` incremental runs (a small per-file API so file tests can skip unchanged
 files), and the remaining **Phase 5 value-adds** — an MSBuild task, a nullable-adoption preset,

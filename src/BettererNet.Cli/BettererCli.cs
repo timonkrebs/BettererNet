@@ -248,10 +248,10 @@ public static class BettererCli
                         return (command, new BettererCliOptions(), "Missing value for --reporter.");
                     }
 
-                    reporter = args[i];
+                    reporter = args[i].ToLowerInvariant();
                     if (reporter is not ("github" or "console" or "silent"))
                     {
-                        return (command, new BettererCliOptions(), $"Unknown reporter '{reporter}'. Expected: console, github, silent.");
+                        return (command, new BettererCliOptions(), $"Unknown reporter '{args[i]}'. Expected: console, github, silent.");
                     }
 
                     break;

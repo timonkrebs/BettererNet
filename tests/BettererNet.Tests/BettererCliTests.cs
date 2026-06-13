@@ -214,6 +214,15 @@ public sealed class BettererCliTests : IDisposable
         Assert.NotNull(error);
     }
 
+    [Fact]
+    public void Parse_Reporter_IsCaseInsensitive()
+    {
+        var (_, options, error) = BettererCli.Parse(["--reporter", "GitHub"]);
+
+        Assert.Null(error);
+        Assert.Equal("github", options.ReporterName);
+    }
+
     private sealed class FakeReporter : IBettererReporter
     {
         public void ReportRun(BettererRunSummary run)
