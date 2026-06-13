@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>BettererNet.Cli</RootNamespace>
+    <AssemblyName>betterernet</AssemblyName>
+
+    <!-- Packaging foundation for the `dotnet betterernet` global tool. Commands land in Phase 3. -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>betterernet</ToolCommandName>
+    <PackageId>BettererNet.Cli</PackageId>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BettererNet.Core\BettererNet.Core.csproj" />
+  </ItemGroup>
+
+</Project>

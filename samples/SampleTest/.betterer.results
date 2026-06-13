@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "results": {
+    "AsyncMethodsMustEndWithSuffix_MatchesFound": {
+      "timestamp": "2026-06-13T12:29:00.8785484+00:00",
+      "issues": [
+        "SampleProject.BadMethods.BadMethod",
+        "SampleProject.BadMethods.BadMethod2",
+        "SampleProject.BadMethods.BadMethod3",
+        "SampleProject.BadMethods.BadMethod4"
+      ]
+    },
+    "DoNotHaveInterfacePrefix_MatchesFound": {
+      "timestamp": "2026-06-13T12:29:00.7655365+00:00",
+      "issues": [
+        "SampleProject.BadInterface",
+        "SampleProject.BadInterfaceC"
+      ]
+    }
+  }
+}

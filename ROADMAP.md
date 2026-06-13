@@ -8,6 +8,9 @@ and to add `.NET`-native capabilities on top.
 > coverlet and friends. The "what to build" sections below map each `betterer`
 > concept onto its idiomatic .NET counterpart.
 
+> **Progress:** ✅ Phase 0 (Foundation) complete. ▶️ Phase 1 (core engine) is next.
+> Section 1 below describes the pre-Phase-0 baseline for the gap analysis.
+
 ---
 
 ## 1. Where BettererNet is today
@@ -111,10 +114,14 @@ BettererNet.Core          # engine: tests, constraints, goals, results file, sta
 
 ## 5. Phased roadmap
 
-### Phase 0 — Foundation
-- Retarget to `net8.0`/`net9.0` (LTS); drop EOL `net5.0`.
-- Restructure into `BettererNet.Core` / `.Cli` / `.Xunit` / `integrations/*` (see §3).
-- Single `.betterer.results` reader/writer (stable, diff-friendly serialization).
+### Phase 0 — Foundation ✅ complete
+- ✅ Retargeted to `net8.0` (LTS) via a root `Directory.Build.props`; dropped EOL `net5.0`.
+- ✅ Restructured to `src/` (`BettererNet.Core` / `.Xunit` / `.Cli`), `samples/`, `tools/`,
+  `tests/`, with a solution at the repo root. (`integrations/*` land in Phase 2.)
+- ✅ Single `.betterer.results` reader/writer (`BettererResultsFile`) — deterministic,
+  sorted, indented, atomic writes; diff-stable across runs.
+- ✅ Migrated the xUnit adapter onto the single results file; added a `BETTERER_UPDATE`
+  seeding escape hatch and a `tests/BettererNet.Tests` suite covering core + adapter.
 
 ### Phase 1 — Core engine (parity backbone) ⭐ highest leverage
 - `BettererTest<T>` with `Test` / `Constraint` / `Goal` / `Deadline`.
@@ -159,6 +166,9 @@ change-detection; `--workers` parallelism.
 
 ## 7. Recommended next step
 
-Start **Phase 1 (core engine)**. It is the dependency root for parity, and converting the
-existing xUnit helper to ride on the new `BettererTest` + single hashed results file proves the
-design end-to-end before the CLI and integrations are layered on.
+Phase 0 is done: the solution is on `net8.0`, restructured into `src`/`samples`/`tools`/`tests`,
+and the single diff-stable `.betterer.results` reader/writer is in place and under test.
+
+**Phase 1 (core engine)** is next. It is the dependency root for parity: introduce
+`BettererTest<T>` with constraints/goals/deadlines, the full result-state machine, and
+`BettererFileTest` with per-file issue hashing, then move the xUnit adapter onto that engine.
