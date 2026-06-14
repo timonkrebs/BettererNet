@@ -30,6 +30,9 @@ public sealed class BettererCliOptions
     /// <summary>When set, also write a SARIF 2.1.0 report of the current issues to this path.</summary>
     public string? SarifPath { get; init; }
 
+    /// <summary>When set, also write a markdown run summary to this path (e.g. to post as a PR comment).</summary>
+    public string? MarkdownPath { get; init; }
+
     /// <summary>When set, use a machine-local fingerprint cache (at this path) to skip tests with unchanged inputs.</summary>
     public string? CachePath { get; init; }
 

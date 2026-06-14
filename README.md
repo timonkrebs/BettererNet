@@ -184,8 +184,8 @@ betterernet merge <base> <ours> <theirs>   # resolve a .betterer.results conflic
 Common options: `--results <path>`, `--filter <regex>` (repeatable; a leading `!` negates),
 `--update` (accept regressions), `--workers <n>` (parallelism),
 `--reporter <console|github|silent>` (the `github` reporter emits CI annotations + a step-summary
-table), `--sarif <path>` (also write a SARIF report of current issues), `--cache` (skip tests with
-unchanged inputs), `--silent`.
+table), `--sarif <path>` (also write a SARIF report of current issues), `--markdown <path>` (run
+summary to post as a PR comment), `--cache` (skip tests with unchanged inputs), `--silent`.
 
 > Use NUnit instead of xUnit? `BettererNet.NUnit` exposes the same `new Betterer().AssertAsync(...)` API.
 

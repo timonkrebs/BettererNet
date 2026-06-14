@@ -12,8 +12,8 @@ and to add `.NET`-native capabilities on top.
 > built-in integrations (now including SARIF import), the `betterernet` CLI with
 > merge/automerge/`--workers`, a GitHub Actions reporter, **NuGet packaging + the global tool, and a
 > declarative `betterer.json`, diff-surfacing reporters, SARIF export, an NUnit adapter, and
-> MSBuild-workspace loading, and content-based hashing + `--cache`** are in place. ▶️ Next in
-> **Phase 6**: a PR-comment reporter and a trend/history report (see §5). Section 1 below describes the pre-Phase-0 baseline.
+> MSBuild-workspace loading, content-based hashing + `--cache`, and a PR-comment reporter
+> (`--markdown`)** are in place. ▶️ Next in **Phase 6**: a trend/history report (see §5). Section 1 below describes the pre-Phase-0 baseline.
 
 ---
 
@@ -193,7 +193,8 @@ At functional parity, the highest-value work is making BettererNet *adoptable* a
 **Tier 2 — make the output actionable:**
 - ✅ **Surface the diff in reporters** — the console and GitHub reporters now list the specific new
   issues on a regression (console `file:line message`; GitHub per-issue `::error file=,line=` annotations).
-- ☐ **PR-comment reporter** — a single PR comment summarising what got better/worse.
+- ✅ **PR-comment reporter** — `--markdown <path>` writes a run summary (verdict, per-test table, new
+  issues) to post as a PR comment from CI (`gh pr comment --body-file` or a sticky-comment action).
 - ☐ **Trend report / history** — store run history and emit an HTML/markdown burn-down chart.
 
 **Tier 3 — depth & performance:**
@@ -242,11 +243,10 @@ declarative `betterer.json`, verified end-to-end (packed, installed, ran a confi
 assembly).
 
 Done so far in Phase 6: Tier 1 (packaging, global tool, declarative `betterer.json`); diff-surfacing
-reporters; SARIF export; an NUnit adapter (framework-agnostic `BettererAssertions`); MSBuild-workspace
-loading; and **content-based file hashing + `--cache`** (skip tests with unchanged inputs).
+reporters; SARIF export; an NUnit adapter; MSBuild-workspace loading; content-based hashing +
+`--cache`; and a **PR-comment reporter** (`--markdown`).
 
 Next, highest-value first:
 
-1. **PR-comment reporter** — summarise what got better/worse directly on the PR.
-2. **Trend / history report**; then MSTest/TUnit adapters, ownership/budgets, and the
-   nullable-adoption preset.
+1. **Trend / history report** — store run history and render a burn-down.
+2. MSTest/TUnit adapters, per-test ownership & budgets, and the nullable-adoption preset.

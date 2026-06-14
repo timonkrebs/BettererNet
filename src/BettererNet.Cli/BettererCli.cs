@@ -200,6 +200,7 @@ public static class BettererCli
         var workers = 1;
         string? reporter = null;
         string? sarifPath = null;
+        string? markdownPath = null;
         string? cachePath = null;
         bool update = false, strict = false, silent = false;
 
@@ -253,6 +254,15 @@ public static class BettererCli
                     }
 
                     sarifPath = args[i];
+                    break;
+
+                case "--markdown":
+                    if (++i >= args.Count)
+                    {
+                        return (command, new BettererCliOptions(), "Missing value for --markdown.");
+                    }
+
+                    markdownPath = args[i];
                     break;
 
                 case "--cache":
@@ -309,6 +319,7 @@ public static class BettererCli
             Workers = workers,
             ReporterName = reporter,
             SarifPath = sarifPath,
+            MarkdownPath = markdownPath,
             CachePath = cachePath,
         };
         return (command, options, null);
@@ -363,9 +374,18 @@ public static class BettererCli
                 _ => new BettererConsoleReporter(),
             };
 
-        return string.IsNullOrEmpty(options.SarifPath)
-            ? primary
-            : new BettererCompositeReporter(primary, new BettererSarifReporter(options.SarifPath));
+        var extras = new List<IBettererReporter>();
+        if (!string.IsNullOrEmpty(options.SarifPath))
+        {
+            extras.Add(new BettererSarifReporter(options.SarifPath));
+        }
+
+        if (!string.IsNullOrEmpty(options.MarkdownPath))
+        {
+            extras.Add(new BettererMarkdownReporter(options.MarkdownPath));
+        }
+
+        return extras.Count == 0 ? primary : new BettererCompositeReporter(extras.Prepend(primary).ToArray());
     }
 
     private static void Report(IBettererReporter reporter, BettererSuiteSummary summary)

@@ -244,6 +244,15 @@ public sealed class BettererCliTests : IDisposable
         Assert.Equal("x.cache", withPath.CachePath);
     }
 
+    [Fact]
+    public void Parse_ReadsMarkdownPath()
+    {
+        var (_, options, error) = BettererCli.Parse(["ci", "--markdown", "betterer.md"]);
+
+        Assert.Null(error);
+        Assert.Equal("betterer.md", options.MarkdownPath);
+    }
+
     private sealed class FakeReporter : IBettererReporter
     {
         public void ReportRun(BettererRunSummary run)

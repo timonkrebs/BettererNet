@@ -330,6 +330,7 @@ Options:
 | `--workers <n>` / `-w` | Run up to *n* tests concurrently. |
 | `--reporter <name>` / `-R` | `console` (default), `github`, or `silent` (case-insensitive). |
 | `--sarif <path>` | Also write a SARIF 2.1.0 report of the current issues (composes with the reporter). |
+| `--markdown <path>` | Also write a markdown run summary (verdict, per-test table, new issues) — post it as a PR comment from CI. |
 | `--cache` / `--cache-path <path>` | Skip tests whose input files are unchanged, via a machine-local fingerprint cache (`.betterer.cache`; gitignore it). |
 | `--silent` / `-s` | Suppress reporter output. |
 
