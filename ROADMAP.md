@@ -212,8 +212,8 @@ At functional parity, the highest-value work is making BettererNet *adoptable* a
   with any reporter; round-trips through SARIF import; feeds GitHub Code Scanning).
 
 **Tier 4 — ecosystem & robustness:**
-- ◐ **More test-framework adapters** — ✅ NUnit (`BettererNet.NUnit`); the adapter orchestration now
-  lives framework-agnostically in `BettererAssertions`, so MSTest/TUnit are thin shims away.
+- ◐ **More test-framework adapters** — ✅ NUnit (`BettererNet.NUnit`) and MSTest
+  (`BettererNet.MSTest`), thin shims over the framework-agnostic `BettererAssertions`; TUnit remains.
 - ☐ **Per-test ownership & budgets** — owners/teams and per-area budgets.
 - ☐ **Cross-process-safe results file** — the xUnit adapter's lock is process-wide, so parallel
   test *projects* could still race.
@@ -248,5 +248,4 @@ Done so far in Phase 6: Tier 1 (packaging, global tool, declarative `betterer.js
 reporters; SARIF export; an NUnit adapter; MSBuild-workspace loading; content-based hashing +
 `--cache`; a **PR-comment reporter** (`--markdown`); and a **trend/history report** (`--history`).
 
-Remaining (lower priority): MSTest/TUnit adapters, per-test ownership & budgets, and a
-nullable-adoption preset.
+Remaining (lower priority): a TUnit adapter, per-test ownership & budgets, and a nullable-adoption preset.

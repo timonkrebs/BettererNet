@@ -46,6 +46,7 @@ it enforced automatically — without a long-lived branch.
 | `BettererNet.Core` | The engine: tests, constraints, goals, results file, runner. |
 | `BettererNet.Xunit` | Assert against the baseline from xUnit tests (`dotnet test`). |
 | `BettererNet.NUnit` | The same `new Betterer().AssertAsync(...)` API, for NUnit tests. |
+| `BettererNet.MSTest` | The same, for MSTest tests. |
 | `BettererNet.Cli` | The `betterernet` tool (`init`/`start`/`ci`/`watch`/`precommit`/`results`/`merge`). |
 | `BettererNet.Regex` | `BettererRegexTest` — count regex matches across files. |
 | `BettererNet.Roslyn` | `BettererRoslynTest` — compiler diagnostics, analyzers, syntax queries. |
