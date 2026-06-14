@@ -126,6 +126,10 @@ await new Betterer().AssertAsync(BettererRoslynTest.Diagnostics(
     compilationOptions: new CSharpCompilationOptions(
         OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable)));
 
+// Nullable-adoption preset (BettererNet.Roslyn.MSBuild): the turnkey "enable #nullable and
+// burn the warnings down" recipe over a real project — goal defaults to zero.
+await new Betterer().AssertAsync(BettererNullableTest.Create("Nullable", "src/App/App.csproj"));
+
 // Roslyn syntax query (the tsquery analog): count nodes you want to eliminate.
 await new Betterer().AssertAsync(BettererRoslynTest.SyntaxQuery(
     "NoGoto", sourceFiles, node => node is GotoStatementSyntax));

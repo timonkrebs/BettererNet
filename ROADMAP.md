@@ -11,10 +11,11 @@ and to add `.NET`-native capabilities on top.
 > **Progress:** ✅ Phases 0-4 complete and Phase 5 underway — the engine, the xUnit adapter, the
 > built-in integrations (now including SARIF import), the `betterernet` CLI with
 > merge/automerge/`--workers`, a GitHub Actions reporter, **NuGet packaging + the global tool, and a
-> declarative `betterer.json`, diff-surfacing reporters, SARIF export, an NUnit adapter, and
+> declarative `betterer.json`, diff-surfacing reporters, SARIF export, NUnit + MSTest adapters, and
 > MSBuild-workspace loading, content-based hashing + `--cache`, a PR-comment reporter (`--markdown`),
-> and a trend/history report (`--history`)** are in place. ▶️ Remaining Phase 6 (lower priority):
-> MSTest/TUnit adapters, ownership/budgets, a nullable preset (see §5). Section 1 below describes the pre-Phase-0 baseline.
+> a trend/history report (`--history`), and a nullable-adoption preset** are in place. ▶️ Remaining
+> Phase 6 (lower priority): a TUnit adapter, ownership/budgets, `dotnet format` integration (see §5).
+> Section 1 below describes the pre-Phase-0 baseline.
 
 ---
 
@@ -207,7 +208,10 @@ At functional parity, the highest-value work is making BettererNet *adoptable* a
 - ✅ **`--cache` / `--cache-path`** — content-based file fingerprints (`BettererFileFingerprint` +
   `BettererCache`) let the runner skip tests whose inputs are unchanged; biggest win on the slow
   Roslyn/MSBuild tests. The cache is machine-local (gitignored).
-- ☐ **Nullable-adoption preset** and **`dotnet format` / EditorConfig** integration.
+- ✅ **Nullable-adoption preset** — `BettererNullableTest.Create(name, projectPath)`
+  (`BettererNet.Roslyn.MSBuild`) wraps `BettererProjectTest.FromProject` filtered to the nullable
+  warnings (`CS8600`+), with a goal of zero: enable `<Nullable>enable</Nullable>`, baseline, burn down.
+- ☐ **`dotnet format` / EditorConfig** integration.
 - ✅ **SARIF export** — `--sarif <path>` writes a SARIF 2.1.0 report of the current issues (composes
   with any reporter; round-trips through SARIF import; feeds GitHub Code Scanning).
 
@@ -245,7 +249,9 @@ declarative `betterer.json`, verified end-to-end (packed, installed, ran a confi
 assembly).
 
 Done so far in Phase 6: Tier 1 (packaging, global tool, declarative `betterer.json`); diff-surfacing
-reporters; SARIF export; an NUnit adapter; MSBuild-workspace loading; content-based hashing +
-`--cache`; a **PR-comment reporter** (`--markdown`); and a **trend/history report** (`--history`).
+reporters; SARIF export; NUnit and MSTest adapters; MSBuild-workspace loading; content-based hashing +
+`--cache`; a **PR-comment reporter** (`--markdown`); a **trend/history report** (`--history`); and a
+**nullable-adoption preset** (`BettererNullableTest`).
 
-Remaining (lower priority): a TUnit adapter, per-test ownership & budgets, and a nullable-adoption preset.
+Remaining (lower priority): a TUnit adapter, per-test ownership & budgets, and `dotnet format` /
+EditorConfig integration.

@@ -50,7 +50,7 @@ it enforced automatically — without a long-lived branch.
 | `BettererNet.Cli` | The `betterernet` tool (`init`/`start`/`ci`/`watch`/`precommit`/`results`/`merge`). |
 | `BettererNet.Regex` | `BettererRegexTest` — count regex matches across files. |
 | `BettererNet.Roslyn` | `BettererRoslynTest` — compiler diagnostics, analyzers, syntax queries. |
-| `BettererNet.Roslyn.MSBuild` | `BettererProjectTest` — analyse a real `.csproj`/`.sln` via MSBuildWorkspace. |
+| `BettererNet.Roslyn.MSBuild` | `BettererProjectTest` — analyse a real `.csproj`/`.sln` via MSBuildWorkspace; `BettererNullableTest` — nullable-adoption preset. |
 | `BettererNet.Coverage` | `BettererCoverageTest` — uncovered lines from a Cobertura report. |
 | `BettererNet.NetArchTest` | `BettererArchTest` — wrap a NetArchTest rule. |
 | `BettererNet.Sarif` | `BettererSarifTest` — import any SARIF report. |
@@ -159,6 +159,20 @@ await new Betterer().AssertAsync(BettererProjectTest.FromProject(
 
 await new Betterer().AssertAsync(BettererProjectTest.FromSolution("Warnings", "App.sln"));
 ```
+
+#### Nullable-adoption preset
+
+Enabling nullable reference types on a mature codebase floods the build with `CS8600`–`CS86xx`
+warnings. `BettererNullableTest` is a turnkey wrapper over `FromProject` that filters to exactly those
+warnings with a goal of zero — set `<Nullable>enable</Nullable>` in the project, baseline the existing
+warnings, then burn them down without ever letting new ones in:
+
+```csharp
+// Tracks every nullable warning in the project; goal defaults to zero (fully adopted).
+await new Betterer().AssertAsync(BettererNullableTest.Create("Nullable", "src/App/App.csproj"));
+```
+
+Pass `goal:` / `deadline:` to set an intermediate target or a date by which adoption must complete.
 
 ### Coverage
 

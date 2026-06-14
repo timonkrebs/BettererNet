@@ -24,6 +24,17 @@ public class BettererProjectTestTests
         Assert.Contains(issues.Files.Keys, file => file.EndsWith("BadStuff.cs", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public async Task NullablePreset_FindsNullableWarnings()
+    {
+        var test = BettererNullableTest.Create("nullable", SampleProject);
+
+        var summary = await test.RunAsync(null, new BettererRunContext());
+        var issues = BettererFileIssuesSerializer.Instance.Deserialize(summary.Result);
+
+        Assert.True(issues.TotalCount >= 1);
+    }
+
     private static string RepoRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
