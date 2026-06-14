@@ -253,6 +253,15 @@ public sealed class BettererCliTests : IDisposable
         Assert.Equal("betterer.md", options.MarkdownPath);
     }
 
+    [Fact]
+    public void Parse_ReadsHistoryPath()
+    {
+        var (_, options, error) = BettererCli.Parse(["start", "--history", "history.json"]);
+
+        Assert.Null(error);
+        Assert.Equal("history.json", options.HistoryPath);
+    }
+
     private sealed class FakeReporter : IBettererReporter
     {
         public void ReportRun(BettererRunSummary run)

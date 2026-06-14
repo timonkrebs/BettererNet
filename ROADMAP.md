@@ -12,8 +12,9 @@ and to add `.NET`-native capabilities on top.
 > built-in integrations (now including SARIF import), the `betterernet` CLI with
 > merge/automerge/`--workers`, a GitHub Actions reporter, **NuGet packaging + the global tool, and a
 > declarative `betterer.json`, diff-surfacing reporters, SARIF export, an NUnit adapter, and
-> MSBuild-workspace loading, content-based hashing + `--cache`, and a PR-comment reporter
-> (`--markdown`)** are in place. ▶️ Next in **Phase 6**: a trend/history report (see §5). Section 1 below describes the pre-Phase-0 baseline.
+> MSBuild-workspace loading, content-based hashing + `--cache`, a PR-comment reporter (`--markdown`),
+> and a trend/history report (`--history`)** are in place. ▶️ Remaining Phase 6 (lower priority):
+> MSTest/TUnit adapters, ownership/budgets, a nullable preset (see §5). Section 1 below describes the pre-Phase-0 baseline.
 
 ---
 
@@ -195,7 +196,8 @@ At functional parity, the highest-value work is making BettererNet *adoptable* a
   issues on a regression (console `file:line message`; GitHub per-issue `::error file=,line=` annotations).
 - ✅ **PR-comment reporter** — `--markdown <path>` writes a run summary (verdict, per-test table, new
   issues) to post as a PR comment from CI (`gh pr comment --body-file` or a sticky-comment action).
-- ☐ **Trend report / history** — store run history and emit an HTML/markdown burn-down chart.
+- ✅ **Trend report / history** — `--history <path>` appends a per-test count snapshot each run and
+  renders a markdown burn-down beside it.
 
 **Tier 3 — depth & performance:**
 - ✅ **MSBuild-workspace loading** (`BettererNet.Roslyn.MSBuild` → `BettererProjectTest.FromProject` /
@@ -244,9 +246,7 @@ assembly).
 
 Done so far in Phase 6: Tier 1 (packaging, global tool, declarative `betterer.json`); diff-surfacing
 reporters; SARIF export; an NUnit adapter; MSBuild-workspace loading; content-based hashing +
-`--cache`; and a **PR-comment reporter** (`--markdown`).
+`--cache`; a **PR-comment reporter** (`--markdown`); and a **trend/history report** (`--history`).
 
-Next, highest-value first:
-
-1. **Trend / history report** — store run history and render a burn-down.
-2. MSTest/TUnit adapters, per-test ownership & budgets, and the nullable-adoption preset.
+Remaining (lower priority): MSTest/TUnit adapters, per-test ownership & budgets, and a
+nullable-adoption preset.

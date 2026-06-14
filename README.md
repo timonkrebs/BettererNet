@@ -185,7 +185,8 @@ Common options: `--results <path>`, `--filter <regex>` (repeatable; a leading `!
 `--update` (accept regressions), `--workers <n>` (parallelism),
 `--reporter <console|github|silent>` (the `github` reporter emits CI annotations + a step-summary
 table), `--sarif <path>` (also write a SARIF report of current issues), `--markdown <path>` (run
-summary to post as a PR comment), `--cache` (skip tests with unchanged inputs), `--silent`.
+summary to post as a PR comment), `--history <path>` (append a snapshot + render a trend),
+`--cache` (skip tests with unchanged inputs), `--silent`.
 
 > Use NUnit instead of xUnit? `BettererNet.NUnit` exposes the same `new Betterer().AssertAsync(...)` API.
 

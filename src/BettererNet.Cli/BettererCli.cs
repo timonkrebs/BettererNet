@@ -201,6 +201,7 @@ public static class BettererCli
         string? reporter = null;
         string? sarifPath = null;
         string? markdownPath = null;
+        string? historyPath = null;
         string? cachePath = null;
         bool update = false, strict = false, silent = false;
 
@@ -265,6 +266,15 @@ public static class BettererCli
                     markdownPath = args[i];
                     break;
 
+                case "--history":
+                    if (++i >= args.Count)
+                    {
+                        return (command, new BettererCliOptions(), "Missing value for --history.");
+                    }
+
+                    historyPath = args[i];
+                    break;
+
                 case "--cache":
                     cachePath = BettererCache.DefaultFileName;
                     break;
@@ -320,6 +330,7 @@ public static class BettererCli
             ReporterName = reporter,
             SarifPath = sarifPath,
             MarkdownPath = markdownPath,
+            HistoryPath = historyPath,
             CachePath = cachePath,
         };
         return (command, options, null);
@@ -383,6 +394,11 @@ public static class BettererCli
         if (!string.IsNullOrEmpty(options.MarkdownPath))
         {
             extras.Add(new BettererMarkdownReporter(options.MarkdownPath));
+        }
+
+        if (!string.IsNullOrEmpty(options.HistoryPath))
+        {
+            extras.Add(new BettererHistoryReporter(options.HistoryPath));
         }
 
         return extras.Count == 0 ? primary : new BettererCompositeReporter(extras.Prepend(primary).ToArray());
