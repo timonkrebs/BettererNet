@@ -11,8 +11,8 @@ and to add `.NET`-native capabilities on top.
 > **Progress:** ✅ Phases 0-4 complete and Phase 5 underway — the engine, the xUnit adapter, the
 > built-in integrations (now including SARIF import), the `betterernet` CLI with
 > merge/automerge/`--workers`, a GitHub Actions reporter, **NuGet packaging + the global tool, and a
-> declarative `betterer.json`** are in place. ▶️ Next in **Phase 6**: actionable diff reporting, then
-> MSBuild-workspace loading (see §5). Section 1 below describes the pre-Phase-0 baseline.
+> declarative `betterer.json`, and diff-surfacing reporters** are in place. ▶️ Next in **Phase 6**:
+> MSBuild-workspace loading and a trend/PR-comment report (see §5). Section 1 below describes the pre-Phase-0 baseline.
 
 ---
 
@@ -190,8 +190,8 @@ At functional parity, the highest-value work is making BettererNet *adoptable* a
   compiled config; `betterernet ci` auto-detects the file. (Roslyn/NetArchTest still use a compiled config.)
 
 **Tier 2 — make the output actionable:**
-- ☐ **Surface the diff in reporters** — `BettererFileIssues.Diff` already knows which issues are new
-  vs fixed; show them (console detail + GitHub `::error file=,line=` annotations). Low effort, high value.
+- ✅ **Surface the diff in reporters** — the console and GitHub reporters now list the specific new
+  issues on a regression (console `file:line message`; GitHub per-issue `::error file=,line=` annotations).
 - ☐ **PR-comment reporter** — a single PR comment summarising what got better/worse.
 - ☐ **Trend report / history** — store run history and emit an HTML/markdown burn-down chart.
 
@@ -234,12 +234,12 @@ merge/automerge/`--workers`, and a **GitHub Actions reporter** — all covered e
 declarative `betterer.json`, verified end-to-end (packed, installed, ran a config with no compiled
 assembly).
 
+Done so far in Phase 6: Tier 1 (packaging, global tool, declarative `betterer.json`) and the first
+Tier 2 item — the console and GitHub reporters now surface the per-issue diff on a regression.
+
 Next, highest-value first:
 
-1. **Make failures actionable** — surface the per-issue diff (what's new vs fixed) in the console and
-   GitHub reporters; the data already exists on `BettererRunSummary`.
-2. **MSBuild-workspace loading** for the Roslyn tests — analyse a real `.sln`/`.csproj` instead of
+1. **MSBuild-workspace loading** for the Roslyn tests — analyse a real `.sln`/`.csproj` instead of
    explicit source paths (also unlocks content-based file hashing).
-
-Then the remaining Phase 6 value-adds (trend report, PR-comment reporter, more test-framework
-adapters, ownership/budgets, …).
+2. **PR-comment reporter** and a **trend/history report**, then the remaining value-adds (more
+   test-framework adapters, ownership/budgets, …).

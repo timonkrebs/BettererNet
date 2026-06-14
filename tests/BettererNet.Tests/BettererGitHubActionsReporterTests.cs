@@ -32,4 +32,22 @@ public sealed class BettererGitHubActionsReporterTests : IDisposable
         Assert.Contains("| BadTest | worse |", summary);
         Assert.Contains("| GoodTest | same |", summary);
     }
+
+    [Fact]
+    public void EmitsPerIssueAnnotations_ForNewFileIssues()
+    {
+        var output = new StringWriter();
+        var reporter = new BettererGitHubActionsReporter(output);
+        var baseline = BettererFileIssuesSerializer.Instance.Serialize(new BettererFileIssues().Add("A.cs", 1, 1, 1, "old"));
+        var current = BettererFileIssuesSerializer.Instance.Serialize(
+            new BettererFileIssues().Add("A.cs", 1, 1, 1, "old").Add("B.cs", 9, 3, 2, "NEW issue"));
+
+        reporter.ReportRun(new BettererRunSummary { Name = "T", Status = BettererRunStatus.Worse, Result = current, Baseline = baseline });
+
+        var annotations = output.ToString();
+        Assert.Contains("file=B.cs", annotations);
+        Assert.Contains("line=9", annotations);
+        Assert.Contains("NEW issue", annotations);
+        Assert.DoesNotContain("old", annotations); // the unchanged issue is not re-reported
+    }
 }

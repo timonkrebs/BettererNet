@@ -333,9 +333,11 @@ configures the git merge driver so conflicts resolve automatically:
 
 ## Reporters & CI
 
-- **console** (default): a per-test line plus a summary.
-- **github**: emits `::error` annotations for failing tests and appends a markdown table to
-  `$GITHUB_STEP_SUMMARY` — use `--reporter github` in GitHub Actions.
+- **console** (default): a per-test line plus a summary; on a regression it lists the specific new
+  issues (`file:line message`).
+- **github**: per-new-issue `::error file=,line=` annotations (so they land on the PR diff), a
+  test-level error for failures, and a markdown table appended to `$GITHUB_STEP_SUMMARY` — use
+  `--reporter github` in GitHub Actions.
 - **silent**: no output.
 
 A minimal GitHub Actions step:
