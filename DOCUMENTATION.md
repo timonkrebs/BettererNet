@@ -297,6 +297,35 @@ pass `--config path/to/betterer.json`); relative paths resolve against the file.
 Each test's key is its name; `goalZero: true` sets a goal of zero issues. `betterernet init`
 scaffolds a starter `betterer.json`.
 
+### Ownership & budgets
+
+For large teams, any test can carry two extra keys (or, in code, be wrapped with
+`.WithOwnership(owner, budget)`):
+
+```json
+{
+  "tests": {
+    "LegacyWarnings": {
+      "type": "regex", "pattern": "#pragma warning disable", "includes": ["**/*.cs"],
+      "owner": "@platform-team",
+      "budget": 50
+    }
+  }
+}
+```
+
+- **`owner`** — a person or team responsible for the test's debt. It's surfaced in the console
+  reporter (`[worse] LegacyWarnings (owner: @platform-team)`) so a regression routes to whoever owns
+  it, rather than the whole org.
+- **`budget`** — a *hard ceiling* on the issue count, distinct from the ratchet and the goal. A run
+  whose count exceeds the budget **fails the suite even if it improved on (or matched) its baseline**,
+  and an over-budget result is never recorded — so a baseline can't be seeded above the ceiling. Set
+  it at or above today's count to cap runaway growth while the ratchet drives the number down. (The
+  budget is also folded into the `--cache` fingerprint, so lowering it re-runs the test.)
+
+The ratchet says "no worse than last time"; the goal is the aspirational target; the budget is the
+line you've decided must never be crossed.
+
 ### Compiled config (advanced)
 
 Tests that need code — Roslyn syntax queries, NetArchTest rules, custom `BettererTest<T>` — come from

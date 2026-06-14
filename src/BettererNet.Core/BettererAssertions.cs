@@ -74,8 +74,11 @@ public static class BettererAssertions
 
                 case BettererRunStatus.Worse:
                 case BettererRunStatus.Expired:
-                    fail($"Betterer test '{test.Name}' got worse than its recorded baseline. Fix the " +
-                        "regression, or set BETTERER_UPDATE=1 to accept it.");
+                    fail(summary.IsOverBudget
+                        ? $"Betterer test '{test.Name}' is over budget: {BettererCount.Of(summary.Result)} " +
+                            $"exceeds the budget of {summary.Budget}."
+                        : $"Betterer test '{test.Name}' got worse than its recorded baseline. Fix the " +
+                            "regression, or set BETTERER_UPDATE=1 to accept it.");
                     return;
 
                 default:

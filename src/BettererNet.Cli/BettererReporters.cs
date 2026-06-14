@@ -11,12 +11,18 @@ public sealed class BettererConsoleReporter : IBettererReporter
 
     public void ReportRun(BettererRunSummary run)
     {
-        _output.WriteLine($"  [{run.Status.ToString().ToLowerInvariant()}] {run.Name}");
+        var owner = run.Owner is { } o ? $" (owner: {o})" : "";
+        _output.WriteLine($"  [{run.Status.ToString().ToLowerInvariant()}] {run.Name}{owner}");
 
         if (run.Status == BettererRunStatus.Failed && run.Error is not null)
         {
             _output.WriteLine($"      {run.Error.Message}");
             return;
+        }
+
+        if (run.IsOverBudget)
+        {
+            _output.WriteLine($"      over budget: {BettererCount.Of(run.Result)} exceeds budget of {run.Budget}");
         }
 
         if (run.Status is not (BettererRunStatus.Worse or BettererRunStatus.Expired))

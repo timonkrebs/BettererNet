@@ -166,10 +166,16 @@ dotnet tool install --global BettererNet.Cli   # run as `betterernet`
   "tests": {
     "NoTodos":   { "type": "regex",    "pattern": "TODO", "includes": ["**/*.cs"] },
     "Coverage":  { "type": "coverage", "report": "coverage.cobertura.xml", "goalZero": true },
-    "Analyzers": { "type": "sarif",    "report": "analysis.sarif", "levels": ["error"] }
+    "Analyzers": { "type": "sarif",    "report": "analysis.sarif", "levels": ["error"],
+                   "owner": "@platform-team", "budget": 50 }
   }
 }
 ```
+
+Any test can carry an **`owner`** (a person/team, surfaced in reports so debt routes to the right
+place) and a **`budget`** (a hard ceiling on the issue count — a run over budget fails even if it
+improved on its baseline, and is never recorded above the ceiling). In code, wrap any test with
+`.WithOwnership(owner, budget)`.
 
 `betterernet ci` auto-detects `betterer.json` in the working directory. Tests that need code (Roslyn
 syntax queries, NetArchTest rules) use a **compiled config assembly** — a class library implementing

@@ -56,6 +56,31 @@ public sealed class BettererConfigFileTests : IDisposable
     }
 
     [Fact]
+    public async Task OwnerAndBudget_FromConfig_AreApplied()
+    {
+        // Two TODOs, but the budget is 1 — the test must fail (over budget) and carry the owner.
+        Write("src/a.cs", "// TODO one\n// TODO two\n");
+        var json = Write("betterer.json", """
+            {
+              "tests": {
+                "Todos": {
+                  "type": "regex", "pattern": "TODO", "includes": ["**/*.cs"],
+                  "owner": "team-platform", "budget": 1
+                }
+              }
+            }
+            """);
+
+        var (tests, _) = BettererConfigFile.Load(json);
+        var summary = await Assert.Single(tests).RunAsync(null, new BettererRunContext());
+
+        Assert.Equal("team-platform", summary.Owner);
+        Assert.Equal(1, summary.Budget);
+        Assert.True(summary.IsOverBudget);
+        Assert.Equal(BettererRunStatus.Worse, summary.Status);
+    }
+
+    [Fact]
     public void UnknownType_Throws()
     {
         var json = Write("betterer.json", """{ "tests": { "X": { "type": "teamcity" } } }""");

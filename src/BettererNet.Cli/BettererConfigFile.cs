@@ -69,7 +69,7 @@ public static class BettererConfigFile
 
         var goal = (spec["goalZero"]?.GetValue<bool>() ?? false) ? BettererFileTest.NoIssues : null;
 
-        return type switch
+        IBettererTest test = type switch
         {
             "regex" => BettererRegexTest.Create(
                 name,
@@ -93,6 +93,14 @@ public static class BettererConfigFile
             _ => throw new InvalidOperationException(
                 $"Test '{name}' has unknown type '{type}'. Supported declarative types: regex, coverage, sarif."),
         };
+
+        // Optional large-team triage metadata: an owner to route debt to, and a hard issue ceiling.
+        var owner = spec["owner"]?.GetValue<string>();
+        var budget = spec["budget"] is JsonValue budgetNode && budgetNode.TryGetValue<int>(out var budgetValue)
+            ? budgetValue
+            : (int?)null;
+
+        return test.WithOwnership(owner, budget);
     }
 
     private static string Required(JsonObject spec, string name, string field) =>

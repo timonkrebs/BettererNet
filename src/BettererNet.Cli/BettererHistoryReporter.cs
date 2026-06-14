@@ -1,5 +1,3 @@
-using System.Text.Json.Nodes;
-
 namespace BettererNet.Cli;
 
 /// <summary>
@@ -21,7 +19,7 @@ public sealed class BettererHistoryReporter : IBettererReporter
         var counts = new Dictionary<string, long>(StringComparer.Ordinal);
         foreach (var run in suite.Runs)
         {
-            counts[run.Name] = Count(run.Result);
+            counts[run.Name] = BettererCount.Of(run.Result);
         }
 
         // Reporters are synchronous; this runs in a console process with no captured sync context.
@@ -31,12 +29,4 @@ public sealed class BettererHistoryReporter : IBettererReporter
 
         File.WriteAllText(Path.ChangeExtension(_historyPath, ".md"), history.RenderMarkdown());
     }
-
-    private static long Count(JsonNode? node) => node switch
-    {
-        JsonArray array => array.Count,
-        JsonObject obj => obj.Sum(pair => Count(pair.Value)),
-        JsonValue value when value.TryGetValue<long>(out var number) => number,
-        _ => 0,
-    };
 }

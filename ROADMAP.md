@@ -13,9 +13,9 @@ and to add `.NET`-native capabilities on top.
 > merge/automerge/`--workers`, a GitHub Actions reporter, **NuGet packaging + the global tool, and a
 > declarative `betterer.json`, diff-surfacing reporters, SARIF export, NUnit + MSTest adapters, and
 > MSBuild-workspace loading, content-based hashing + `--cache`, a PR-comment reporter (`--markdown`),
-> a trend/history report (`--history`), and a nullable-adoption preset** are in place. ▶️ Remaining
-> Phase 6 (lower priority): a TUnit adapter, ownership/budgets, `dotnet format` integration (see §5).
-> Section 1 below describes the pre-Phase-0 baseline.
+> a trend/history report (`--history`), a nullable-adoption preset, and per-test ownership & budgets**
+> are in place. ▶️ Remaining Phase 6 (lower priority): a TUnit adapter and `dotnet format` integration
+> (see §5). Section 1 below describes the pre-Phase-0 baseline.
 
 ---
 
@@ -177,8 +177,7 @@ BettererNet.Core          # engine: tests, constraints, goals, results file, sta
   unlocking the whole SARIF-emitting ecosystem (Roslyn analyzers, `dotnet format`, etc.).
 - ✅ **GitHub Actions reporter** — `::error` annotations + a `$GITHUB_STEP_SUMMARY` table, selected
   with `--reporter github` (which also wired up the `--reporter` flag).
-- ☐ MSBuild task, nullable-adoption preset, reporters for other CI systems, dotnet-format /
-  EditorConfig integration, per-test ownership & budgets, HTML/markdown trend report (see §6).
+- ☐ MSBuild task, reporters for other CI systems, dotnet-format / EditorConfig integration (see §6).
 
 ### Phase 6 — Adoption & insights (next) — prioritized
 At functional parity, the highest-value work is making BettererNet *adoptable* and its output
@@ -218,7 +217,10 @@ At functional parity, the highest-value work is making BettererNet *adoptable* a
 **Tier 4 — ecosystem & robustness:**
 - ◐ **More test-framework adapters** — ✅ NUnit (`BettererNet.NUnit`) and MSTest
   (`BettererNet.MSTest`), thin shims over the framework-agnostic `BettererAssertions`; TUnit remains.
-- ☐ **Per-test ownership & budgets** — owners/teams and per-area budgets.
+- ✅ **Per-test ownership & budgets** — `IBettererTest.WithOwnership(owner, budget)` (and `owner` /
+  `budget` keys in `betterer.json`) tag any test with a responsible person/team (surfaced by the
+  console reporter) and a hard issue ceiling that fails the run when crossed — even on an improvement —
+  and is never recorded above, so debt routes to its owner and can't quietly balloon.
 - ☐ **Cross-process-safe results file** — the xUnit adapter's lock is process-wide, so parallel
   test *projects* could still race.
 
@@ -232,7 +234,7 @@ At functional parity, the highest-value work is making BettererNet *adoptable* a
 4. **SARIF import/export** — ingest any analyzer that emits SARIF (huge ecosystem) and export for GitHub Code Scanning.
 5. **GitHub Actions / Azure DevOps reporters** — PR annotations and step summaries out of the box.
 6. **`dotnet format` / EditorConfig integration** — incrementally tighten style rules.
-7. **Per-test ownership & budgets** — assign owners/teams to debt and per-area budgets (serves the "large teams" promise).
+7. ✅ **Per-test ownership & budgets** — assign owners/teams to debt and a hard budget per test (serves the "large teams" promise).
 8. **HTML/markdown trend report** — visualize debt burning down over time.
 9. **Solution-wide discovery** — point at a `.sln`, auto-enumerate projects (the InspectCode app already gestures at this).
 
@@ -250,8 +252,8 @@ assembly).
 
 Done so far in Phase 6: Tier 1 (packaging, global tool, declarative `betterer.json`); diff-surfacing
 reporters; SARIF export; NUnit and MSTest adapters; MSBuild-workspace loading; content-based hashing +
-`--cache`; a **PR-comment reporter** (`--markdown`); a **trend/history report** (`--history`); and a
-**nullable-adoption preset** (`BettererNullableTest`).
+`--cache`; a **PR-comment reporter** (`--markdown`); a **trend/history report** (`--history`); a
+**nullable-adoption preset** (`BettererNullableTest`); and **per-test ownership & budgets**
+(`WithOwnership` / `owner` + `budget`).
 
-Remaining (lower priority): a TUnit adapter, per-test ownership & budgets, and `dotnet format` /
-EditorConfig integration.
+Remaining (lower priority): a TUnit adapter and `dotnet format` / EditorConfig integration.

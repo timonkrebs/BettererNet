@@ -34,4 +34,26 @@ public sealed class BettererConsoleReporterTests
         Assert.Contains("[same] T", text);
         Assert.DoesNotContain("+", text);
     }
+
+    [Fact]
+    public void SurfacesOwnerAndBudgetBreach()
+    {
+        var output = new StringWriter();
+        var reporter = new BettererConsoleReporter(output);
+        var current = System.Text.Json.Nodes.JsonValue.Create(15L);
+
+        reporter.ReportRun(new BettererRunSummary
+        {
+            Name = "Warnings",
+            Status = BettererRunStatus.Worse,
+            Result = current,
+            Owner = "team-platform",
+            Budget = 10,
+            IsOverBudget = true,
+        });
+
+        var text = output.ToString();
+        Assert.Contains("owner: team-platform", text);
+        Assert.Contains("over budget: 15 exceeds budget of 10", text);
+    }
 }
