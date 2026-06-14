@@ -11,10 +11,10 @@ and to add `.NET`-native capabilities on top.
 > **Progress:** ✅ Phases 0-4 complete and Phase 5 underway — the engine, the xUnit adapter, the
 > built-in integrations (now including SARIF import), the `betterernet` CLI with
 > merge/automerge/`--workers`, a GitHub Actions reporter, **NuGet packaging + the global tool, and a
-> declarative `betterer.json`, diff-surfacing reporters, SARIF export, NUnit + MSTest adapters, and
+> declarative `betterer.json`, diff-surfacing reporters, SARIF export, NUnit + MSTest + TUnit adapters,
 > MSBuild-workspace loading, content-based hashing + `--cache`, a PR-comment reporter (`--markdown`),
-> a trend/history report (`--history`), a nullable-adoption preset, and per-test ownership & budgets**
-> are in place. ▶️ Remaining Phase 6 (lower priority): a TUnit adapter (see §5). Section 1 below
+> a trend/history report (`--history`), a nullable-adoption preset, per-test ownership & budgets, and a
+> `dotnet format` integration** are in place — **the planned roadmap is complete**. Section 1 below
 > describes the pre-Phase-0 baseline.
 
 ---
@@ -220,8 +220,10 @@ At functional parity, the highest-value work is making BettererNet *adoptable* a
   with any reporter; round-trips through SARIF import; feeds GitHub Code Scanning).
 
 **Tier 4 — ecosystem & robustness:**
-- ◐ **More test-framework adapters** — ✅ NUnit (`BettererNet.NUnit`) and MSTest
-  (`BettererNet.MSTest`), thin shims over the framework-agnostic `BettererAssertions`; TUnit remains.
+- ✅ **More test-framework adapters** — NUnit (`BettererNet.NUnit`), MSTest (`BettererNet.MSTest`),
+  and TUnit (`BettererNet.TUnit`, on Microsoft.Testing.Platform — it coexists with the VSTest
+  projects under a single `dotnet test`), all thin shims over the framework-agnostic
+  `BettererAssertions`.
 - ✅ **Per-test ownership & budgets** — `IBettererTest.WithOwnership(owner, budget)` (and `owner` /
   `budget` keys in `betterer.json`) tag any test with a responsible person/team (surfaced by the
   console reporter) and a hard issue ceiling that fails the run when crossed — even on an improvement —
@@ -255,10 +257,12 @@ merge/automerge/`--workers`, and a **GitHub Actions reporter** — all covered e
 declarative `betterer.json`, verified end-to-end (packed, installed, ran a config with no compiled
 assembly).
 
-Done so far in Phase 6: Tier 1 (packaging, global tool, declarative `betterer.json`); diff-surfacing
-reporters; SARIF export; NUnit and MSTest adapters; MSBuild-workspace loading; content-based hashing +
-`--cache`; a **PR-comment reporter** (`--markdown`); a **trend/history report** (`--history`); a
-**nullable-adoption preset** (`BettererNullableTest`); **per-test ownership & budgets**
+Done in Phase 6: Tier 1 (packaging, global tool, declarative `betterer.json`); diff-surfacing
+reporters; SARIF export; NUnit, MSTest, and TUnit adapters; MSBuild-workspace loading; content-based
+hashing + `--cache`; a **PR-comment reporter** (`--markdown`); a **trend/history report**
+(`--history`); a **nullable-adoption preset** (`BettererNullableTest`); **per-test ownership & budgets**
 (`WithOwnership` / `owner` + `budget`); and a **`dotnet format` integration** (`BettererFormatTest`).
 
-Remaining (lower priority): a TUnit adapter.
+**The planned roadmap is complete.** Further work would be opportunistic — an MSBuild/`dotnet build`
+task, reporters for other CI systems (Azure DevOps, TeamCity), or a cross-process-safe results file —
+rather than anything outstanding.

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>BettererNet</RootNamespace>
+    <AssemblyName>BettererNet.TUnit</AssemblyName>
+    <Description>TUnit adapter for BettererNet — assert against the baseline from TUnit tests.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Only the assertions package: the adapter just needs Assert.Fail, not the test runner. -->
+    <PackageReference Include="TUnit.Assertions" Version="0.25.21" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BettererNet.Core\BettererNet.Core.csproj" />
+  </ItemGroup>
+
+</Project>

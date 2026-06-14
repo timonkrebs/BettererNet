@@ -202,7 +202,7 @@ table), `--sarif <path>` (also write a SARIF report of current issues), `--markd
 summary to post as a PR comment), `--history <path>` (append a snapshot + render a trend),
 `--cache` (skip tests with unchanged inputs), `--silent`.
 
-> Prefer NUnit or MSTest? `BettererNet.NUnit` and `BettererNet.MSTest` expose the same `new Betterer().AssertAsync(...)` API.
+> Prefer NUnit, MSTest, or TUnit? `BettererNet.NUnit`, `BettererNet.MSTest`, and `BettererNet.TUnit` expose the same `new Betterer().AssertAsync(...)` API.
 
 With `--automerge` configured, git resolves `.betterer.results` conflicts automatically by taking
 the tightest baseline (so no branch's improvements are lost).
