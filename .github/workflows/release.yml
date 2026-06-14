@@ -1,0 +1,66 @@
+name: Release
+
+# Publishes all packable projects to NuGet. Triggered by pushing a version tag
+# (e.g. `v0.1.0-alpha`), or manually via the Actions tab with an explicit version.
+#
+# Prerequisite: add a repository secret named NUGET_API_KEY
+# (Settings -> Secrets and variables -> Actions) with a nuget.org API key.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g. 0.1.0-alpha)'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Pack & publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Resolve version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Publishing version $VERSION"
+
+      - name: Restore
+        run: dotnet restore BettererNet.sln
+
+      - name: Build
+        run: dotnet build BettererNet.sln --configuration Release --no-restore -p:Version=${{ steps.version.outputs.version }}
+
+      - name: Test
+        run: dotnet test BettererNet.sln --configuration Release --no-build
+
+      - name: Pack
+        run: dotnet pack BettererNet.sln --configuration Release --no-build -p:Version=${{ steps.version.outputs.version }} -o artifacts
+
+      - name: Publish to NuGet
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo "::error::NUGET_API_KEY secret is not set. Add it in Settings -> Secrets and variables -> Actions." >&2
+            exit 1
+          fi
+          dotnet nuget push "artifacts/*.nupkg" \
+            --api-key "$NUGET_API_KEY" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
