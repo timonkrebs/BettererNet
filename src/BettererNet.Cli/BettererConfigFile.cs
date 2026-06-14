@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
@@ -21,7 +22,14 @@ public static class BettererConfigFile
         var fullPath = Path.GetFullPath(path);
         var baseDirectory = Path.GetDirectoryName(fullPath) ?? Directory.GetCurrentDirectory();
 
-        if (JsonNode.Parse(File.ReadAllText(fullPath)) is not JsonObject root)
+        // Tolerate comments and trailing commas so `.json` and `.jsonc` both parse.
+        var documentOptions = new JsonDocumentOptions
+        {
+            CommentHandling = JsonCommentHandling.Skip,
+            AllowTrailingCommas = true,
+        };
+
+        if (JsonNode.Parse(File.ReadAllText(fullPath), documentOptions: documentOptions) is not JsonObject root)
         {
             throw new InvalidOperationException($"'{path}' is not a JSON object.");
         }
@@ -33,14 +41,21 @@ public static class BettererConfigFile
         }
 
         var tests = new List<IBettererTest>();
-        if (root["tests"] is JsonObject testsObject)
+        if (root["tests"] is { } testsNode)
         {
+            if (testsNode is not JsonObject testsObject)
+            {
+                throw new InvalidOperationException("'tests' must be a JSON object of name -> test.");
+            }
+
             foreach (var (name, node) in testsObject)
             {
-                if (node is JsonObject spec)
+                if (node is not JsonObject spec)
                 {
-                    tests.Add(Build(name, spec, baseDirectory));
+                    throw new InvalidOperationException($"Test '{name}' must be a JSON object.");
                 }
+
+                tests.Add(Build(name, spec, baseDirectory));
             }
         }
 

@@ -27,7 +27,7 @@ for (var i = 0; i < argList.Count; i++)
     }
 }
 
-configPath ??= File.Exists("betterer.json") ? "betterer.json" : null;
+configPath ??= new[] { "betterer.json", "betterer.jsonc" }.FirstOrDefault(File.Exists);
 
 IEnumerable<IBettererTest> tests = [];
 string? declaredResults = null;

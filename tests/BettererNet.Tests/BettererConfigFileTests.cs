@@ -80,4 +80,37 @@ public sealed class BettererConfigFileTests : IDisposable
 
         Assert.Equal(Path.Combine(_dir, ".betterer.results"), results);
     }
+
+    [Fact]
+    public void LoadsJsoncWithCommentsAndTrailingCommas()
+    {
+        var json = Write("betterer.jsonc", """
+            {
+              // a comment
+              "tests": {
+                "Todos": { "type": "regex", "pattern": "TODO", "includes": ["**/*.cs"] },
+              },
+            }
+            """);
+
+        var (tests, _) = BettererConfigFile.Load(json);
+
+        Assert.Single(tests);
+    }
+
+    [Fact]
+    public void TestsNotObject_Throws()
+    {
+        var json = Write("betterer.json", """{ "tests": [] }""");
+
+        Assert.Throws<InvalidOperationException>(() => BettererConfigFile.Load(json));
+    }
+
+    [Fact]
+    public void TestEntryNotObject_Throws()
+    {
+        var json = Write("betterer.json", """{ "tests": { "X": "oops" } }""");
+
+        Assert.Throws<InvalidOperationException>(() => BettererConfigFile.Load(json));
+    }
 }
