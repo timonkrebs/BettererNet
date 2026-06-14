@@ -19,6 +19,7 @@
     <ProjectReference Include="..\BettererNet.Regex\BettererNet.Regex.csproj" />
     <ProjectReference Include="..\BettererNet.Coverage\BettererNet.Coverage.csproj" />
     <ProjectReference Include="..\BettererNet.Sarif\BettererNet.Sarif.csproj" />
+    <ProjectReference Include="..\BettererNet.Format\BettererNet.Format.csproj" />
   </ItemGroup>
 
 </Project>

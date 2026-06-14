@@ -54,6 +54,7 @@ it enforced automatically — without a long-lived branch.
 | `BettererNet.Coverage` | `BettererCoverageTest` — uncovered lines from a Cobertura report. |
 | `BettererNet.NetArchTest` | `BettererArchTest` — wrap a NetArchTest rule. |
 | `BettererNet.Sarif` | `BettererSarifTest` — import any SARIF report. |
+| `BettererNet.Format` | `BettererFormatTest` — track a `dotnet format` report (whitespace/imports/style). |
 
 All test types live in the `BettererNet` namespace.
 
@@ -199,6 +200,24 @@ BettererSarifTest.Create("Analyzers", "analysis.sarif");
 // optional: levels (default {"warning","error"}), e.g. new HashSet<string> { "error" }
 ```
 
+### dotnet format
+
+Adopt strict formatting and style incrementally — the .NET answer to enabling a lint config one rule
+at a time. Run `dotnet format` in *report-only* mode in CI so it lists, but doesn't apply, every
+whitespace, import-ordering, and analyzer/style fix; then ingest the report:
+
+```bash
+dotnet format --verify-no-changes --report format-report.json
+```
+
+```csharp
+BettererFormatTest.Create("Format", "format-report.json");
+// optional: diagnostics — track only certain DiagnosticIds, e.g. new HashSet<string> { "WHITESPACE" }
+```
+
+Baseline the report, then tighten `.editorconfig` and burn the findings down without ever letting new
+ones in.
+
 ### Counting
 
 When you just have a number to drive down:
@@ -280,8 +299,8 @@ dotnet tool install --global BettererNet.Cli   # run as `betterernet`
 ### Declarative config (`betterer.json`)
 
 The simplest setup needs **no code** — a `betterer.json` describing the data-driven test types
-(regex, coverage, SARIF). `betterernet ci` auto-detects `betterer.json` in the working directory (or
-pass `--config path/to/betterer.json`); relative paths resolve against the file.
+(regex, coverage, SARIF, dotnet-format). `betterernet ci` auto-detects `betterer.json` in the working
+directory (or pass `--config path/to/betterer.json`); relative paths resolve against the file.
 
 ```json
 {
@@ -289,7 +308,8 @@ pass `--config path/to/betterer.json`); relative paths resolve against the file.
   "tests": {
     "NoTodos":   { "type": "regex",    "pattern": "TODO", "includes": ["**/*.cs"], "ignoreCase": false },
     "Coverage":  { "type": "coverage", "report": "coverage.cobertura.xml", "goalZero": true },
-    "Analyzers": { "type": "sarif",    "report": "analysis.sarif", "levels": ["error"] }
+    "Analyzers": { "type": "sarif",    "report": "analysis.sarif", "levels": ["error"] },
+    "Format":    { "type": "format",   "report": "format-report.json", "diagnostics": ["WHITESPACE"] }
   }
 }
 ```

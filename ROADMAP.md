@@ -14,8 +14,8 @@ and to add `.NET`-native capabilities on top.
 > declarative `betterer.json`, diff-surfacing reporters, SARIF export, NUnit + MSTest adapters, and
 > MSBuild-workspace loading, content-based hashing + `--cache`, a PR-comment reporter (`--markdown`),
 > a trend/history report (`--history`), a nullable-adoption preset, and per-test ownership & budgets**
-> are in place. ▶️ Remaining Phase 6 (lower priority): a TUnit adapter and `dotnet format` integration
-> (see §5). Section 1 below describes the pre-Phase-0 baseline.
+> are in place. ▶️ Remaining Phase 6 (lower priority): a TUnit adapter (see §5). Section 1 below
+> describes the pre-Phase-0 baseline.
 
 ---
 
@@ -57,12 +57,14 @@ front-ends that share it:
 ```
 BettererNet.Core          # engine: tests, constraints, goals, results file, state machine
   ├── BettererNet.Cli      # `dotnet betterernet` tool: init/start/ci/watch/precommit/results/merge
-  ├── BettererNet.Xunit    # xUnit (+ NUnit/MSTest later) adapter — keeps `dotnet test` ergonomics
+  ├── BettererNet.Xunit    # xUnit / NUnit / MSTest adapters — keep `dotnet test` ergonomics
   └── integrations/
-        ├── BettererNet.Regex       # regex match-count test
-        ├── BettererNet.Roslyn      # analyzer + compiler/nullable + syntax-query tests
-        ├── BettererNet.Coverage    # coverlet / Cobertura coverage test
-        └── BettererNet.NetArchTest # architecture-test wrapper
+        ├── BettererNet.Regex          # regex match-count test
+        ├── BettererNet.Roslyn(.MSBuild) # analyzer + compiler/nullable + syntax-query / whole-project tests
+        ├── BettererNet.Coverage       # coverlet / Cobertura coverage test
+        ├── BettererNet.NetArchTest    # architecture-test wrapper
+        ├── BettererNet.Sarif          # import any SARIF report
+        └── BettererNet.Format         # dotnet format report test
 ```
 
 - **CLI** drives true parity: `ci` / `watch` / `merge` / `precommit` / reporters, configured by a
@@ -177,7 +179,7 @@ BettererNet.Core          # engine: tests, constraints, goals, results file, sta
   unlocking the whole SARIF-emitting ecosystem (Roslyn analyzers, `dotnet format`, etc.).
 - ✅ **GitHub Actions reporter** — `::error` annotations + a `$GITHUB_STEP_SUMMARY` table, selected
   with `--reporter github` (which also wired up the `--reporter` flag).
-- ☐ MSBuild task, reporters for other CI systems, dotnet-format / EditorConfig integration (see §6).
+- ☐ MSBuild task, reporters for other CI systems (see §6).
 
 ### Phase 6 — Adoption & insights (next) — prioritized
 At functional parity, the highest-value work is making BettererNet *adoptable* and its output
@@ -210,7 +212,10 @@ At functional parity, the highest-value work is making BettererNet *adoptable* a
 - ✅ **Nullable-adoption preset** — `BettererNullableTest.Create(name, projectPath)`
   (`BettererNet.Roslyn.MSBuild`) wraps `BettererProjectTest.FromProject` filtered to the nullable
   warnings (`CS8600`+), with a goal of zero: enable `<Nullable>enable</Nullable>`, baseline, burn down.
-- ☐ **`dotnet format` / EditorConfig** integration.
+- ✅ **`dotnet format` integration** — `BettererFormatTest` (`BettererNet.Format`) ingests a
+  `dotnet format --verify-no-changes --report` JSON report (whitespace, imports, analyzer/style fixes),
+  with an optional `DiagnosticId` filter; also a declarative `"type": "format"`. Adopt a strict
+  `.editorconfig` one rule at a time.
 - ✅ **SARIF export** — `--sarif <path>` writes a SARIF 2.1.0 report of the current issues (composes
   with any reporter; round-trips through SARIF import; feeds GitHub Code Scanning).
 
@@ -233,7 +238,7 @@ At functional parity, the highest-value work is making BettererNet *adoptable* a
 3. **Nullable-reference-type adoption preset** — turnkey "incrementally enable `#nullable`" recipe (the canonical .NET migration pain point).
 4. **SARIF import/export** — ingest any analyzer that emits SARIF (huge ecosystem) and export for GitHub Code Scanning.
 5. **GitHub Actions / Azure DevOps reporters** — PR annotations and step summaries out of the box.
-6. **`dotnet format` / EditorConfig integration** — incrementally tighten style rules.
+6. ✅ **`dotnet format` integration** — `BettererFormatTest` ingests a `dotnet format` report to incrementally tighten style rules.
 7. ✅ **Per-test ownership & budgets** — assign owners/teams to debt and a hard budget per test (serves the "large teams" promise).
 8. **HTML/markdown trend report** — visualize debt burning down over time.
 9. **Solution-wide discovery** — point at a `.sln`, auto-enumerate projects (the InspectCode app already gestures at this).
@@ -253,7 +258,7 @@ assembly).
 Done so far in Phase 6: Tier 1 (packaging, global tool, declarative `betterer.json`); diff-surfacing
 reporters; SARIF export; NUnit and MSTest adapters; MSBuild-workspace loading; content-based hashing +
 `--cache`; a **PR-comment reporter** (`--markdown`); a **trend/history report** (`--history`); a
-**nullable-adoption preset** (`BettererNullableTest`); and **per-test ownership & budgets**
-(`WithOwnership` / `owner` + `budget`).
+**nullable-adoption preset** (`BettererNullableTest`); **per-test ownership & budgets**
+(`WithOwnership` / `owner` + `budget`); and a **`dotnet format` integration** (`BettererFormatTest`).
 
-Remaining (lower priority): a TUnit adapter and `dotnet format` / EditorConfig integration.
+Remaining (lower priority): a TUnit adapter.

@@ -29,15 +29,16 @@ public sealed class BettererConfigFileTests : IDisposable
               "tests": {
                 "Todos": { "type": "regex", "pattern": "TODO", "includes": ["**/*.cs"] },
                 "Cov": { "type": "coverage", "report": "coverage.cobertura.xml" },
-                "Sarif": { "type": "sarif", "report": "a.sarif", "levels": ["error"] }
+                "Sarif": { "type": "sarif", "report": "a.sarif", "levels": ["error"] },
+                "Fmt": { "type": "format", "report": "format-report.json" }
               }
             }
             """);
 
         var (tests, results) = BettererConfigFile.Load(json);
 
-        Assert.Equal(3, tests.Count);
-        Assert.Equal(new[] { "Cov", "Sarif", "Todos" }, tests.Select(test => test.Name).OrderBy(name => name));
+        Assert.Equal(4, tests.Count);
+        Assert.Equal(new[] { "Cov", "Fmt", "Sarif", "Todos" }, tests.Select(test => test.Name).OrderBy(name => name));
         Assert.EndsWith(".betterer.results", results);
     }
 

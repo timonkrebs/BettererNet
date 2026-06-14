@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>BettererNet</RootNamespace>
+    <AssemblyName>BettererNet.Format</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BettererNet.Core\BettererNet.Core.csproj" />
+  </ItemGroup>
+
+</Project>

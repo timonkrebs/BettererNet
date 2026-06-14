@@ -90,8 +90,14 @@ public static class BettererConfigFile
                 levels: ReadStringSet(spec["levels"]),
                 goal: goal),
 
+            "format" => BettererFormatTest.Create(
+                name,
+                ResolvePath(Required(spec, name, "report"), baseDirectory),
+                diagnostics: ReadStringSet(spec["diagnostics"]),
+                goal: goal),
+
             _ => throw new InvalidOperationException(
-                $"Test '{name}' has unknown type '{type}'. Supported declarative types: regex, coverage, sarif."),
+                $"Test '{name}' has unknown type '{type}'. Supported declarative types: regex, coverage, sarif, format."),
         };
 
         // Optional large-team triage metadata: an owner to route debt to, and a hard issue ceiling.

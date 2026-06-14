@@ -148,6 +148,10 @@ await new Betterer().AssertAsync(BettererArchTest.Create("Layering", () =>
 
 // SARIF: import any analyzer's report (the whole SARIF ecosystem) as a file test.
 await new Betterer().AssertAsync(BettererSarifTest.Create("Analyzers", "analysis.sarif"));
+
+// dotnet format: adopt strict formatting/style incrementally. Run
+// `dotnet format --verify-no-changes --report format-report.json` in CI, then track its findings.
+await new Betterer().AssertAsync(BettererFormatTest.Create("Format", "format-report.json"));
 ```
 
 ## CLI
@@ -158,7 +162,7 @@ Install the tool, then define a suite — declaratively or in code:
 dotnet tool install --global BettererNet.Cli   # run as `betterernet`
 ```
 
-**Declarative `betterer.json`** (no code; covers the data-driven tests — regex, coverage, SARIF):
+**Declarative `betterer.json`** (no code; covers the data-driven tests — regex, coverage, SARIF, dotnet-format):
 
 ```json
 {
