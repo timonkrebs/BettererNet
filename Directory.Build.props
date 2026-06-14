@@ -10,4 +10,22 @@
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
   </PropertyGroup>
 
+  <!-- Shared NuGet package metadata. Only projects without IsPackable=false are packed. -->
+  <PropertyGroup>
+    <Version>0.1.0-alpha</Version>
+    <Authors>BettererNet contributors</Authors>
+    <Product>BettererNet</Product>
+    <PackageProjectUrl>https://github.com/timonkrebs/BettererNet</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/timonkrebs/BettererNet</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>betterer;incremental;code-quality;analyzers;architecture;technical-debt;legacy</PackageTags>
+    <Description>Incremental code-quality improvement tracking for .NET, inspired by betterer.</Description>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
 </Project>

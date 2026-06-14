@@ -19,9 +19,30 @@ public sealed class BettererGitHubActionsReporter : IBettererReporter
 
     public void ReportRun(BettererRunSummary run)
     {
-        if (run.Status is BettererRunStatus.Worse or BettererRunStatus.Expired or BettererRunStatus.Failed)
+        if (run.Status == BettererRunStatus.Failed)
         {
+            _output.WriteLine($"::error title=Betterer::{Escape($"{run.Name} failed: {run.Error?.Message}")}");
+            return;
+        }
+
+        if (run.Status is not (BettererRunStatus.Worse or BettererRunStatus.Expired))
+        {
+            return;
+        }
+
+        var newIssues = BettererRunDiff.NewIssues(run);
+        if (newIssues.Count == 0)
+        {
+            // No per-issue detail (e.g. a counting test): a single test-level annotation.
             _output.WriteLine($"::error title=Betterer::{Escape($"{run.Name} got {Describe(run.Status)}")}");
+            return;
+        }
+
+        // One annotation per new issue so each lands on the right line in the PR diff.
+        foreach (var (file, issue) in newIssues)
+        {
+            _output.WriteLine(
+                $"::error title=Betterer ({Escape(run.Name)}),file={EscapeProperty(file)},line={issue.Line},col={issue.Column}::{Escape(issue.Message)}");
         }
     }
 
@@ -61,4 +82,7 @@ public sealed class BettererGitHubActionsReporter : IBettererReporter
     // Escape per the GitHub Actions workflow-command spec.
     private static string Escape(string value) =>
         value.Replace("%", "%25").Replace("\r", "%0D").Replace("\n", "%0A");
+
+    private static string EscapeProperty(string value) =>
+        Escape(value).Replace(":", "%3A").Replace(",", "%2C");
 }

@@ -14,6 +14,7 @@ public sealed class BettererTest<T> : IBettererTest
     private readonly IBettererSerializer<T> _serializer;
     private readonly Func<T, bool>? _goal;
     private readonly DateTimeOffset? _deadline;
+    private readonly Func<string?>? _fingerprint;
 
     public BettererTest(
         string name,
@@ -22,7 +23,8 @@ public sealed class BettererTest<T> : IBettererTest
         IBettererSerializer<T>? serializer = null,
         Func<T, bool>? goal = null,
         DateTimeOffset? deadline = null,
-        bool isSkipped = false)
+        bool isSkipped = false,
+        Func<string?>? fingerprint = null)
     {
         Name = name;
         _test = test;
@@ -31,6 +33,7 @@ public sealed class BettererTest<T> : IBettererTest
         _goal = goal;
         _deadline = deadline;
         IsSkipped = isSkipped;
+        _fingerprint = fingerprint;
     }
 
     public BettererTest(
@@ -40,14 +43,17 @@ public sealed class BettererTest<T> : IBettererTest
         IBettererSerializer<T>? serializer = null,
         Func<T, bool>? goal = null,
         DateTimeOffset? deadline = null,
-        bool isSkipped = false)
-        : this(name, _ => Task.FromResult(test()), constraint, serializer, goal, deadline, isSkipped)
+        bool isSkipped = false,
+        Func<string?>? fingerprint = null)
+        : this(name, _ => Task.FromResult(test()), constraint, serializer, goal, deadline, isSkipped, fingerprint)
     {
     }
 
     public string Name { get; }
 
     public bool IsSkipped { get; }
+
+    public string? ComputeFingerprint() => _fingerprint?.Invoke();
 
     public async Task<BettererRunSummary> RunAsync(
         JsonNode? baselineValue,

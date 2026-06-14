@@ -36,7 +36,7 @@ public static class BettererRoslynTest
             var compilation = await CompileAsync(name, sourcePaths, compilationOptions, parseOptions, references, cancellationToken)
                 .ConfigureAwait(false);
             return ToIssues(compilation.GetDiagnostics(cancellationToken).Where(matches));
-        }, goal, deadline);
+        }, goal, deadline, fingerprint: () => BettererFileFingerprint.Compute(sourcePaths));
     }
 
     /// <summary>Track diagnostics reported by the given Roslyn analyzers.</summary>
@@ -59,7 +59,7 @@ public static class BettererRoslynTest
             var withAnalyzers = compilation.WithAnalyzers(analyzers, options: null);
             var diagnostics = await withAnalyzers.GetAnalyzerDiagnosticsAsync(cancellationToken).ConfigureAwait(false);
             return ToIssues(diagnostics.Where(matches));
-        }, goal, deadline);
+        }, goal, deadline, fingerprint: () => BettererFileFingerprint.Compute(sourcePaths));
     }
 
     /// <summary>Count syntax nodes matching <paramref name="predicate"/> — the .NET answer to tsquery.</summary>
@@ -95,7 +95,7 @@ public static class BettererRoslynTest
             }
 
             return issues;
-        }, goal, deadline);
+        }, goal, deadline, fingerprint: () => BettererFileFingerprint.Compute(sourcePaths));
     }
 
     private static async Task<CSharpCompilation> CompileAsync(

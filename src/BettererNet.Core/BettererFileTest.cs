@@ -17,13 +17,15 @@ public static class BettererFileTest
         string name,
         Func<CancellationToken, Task<BettererFileIssues>> test,
         Func<BettererFileIssues, bool>? goal = null,
-        DateTimeOffset? deadline = null) =>
-        new(name, test, CountConstraint, BettererFileIssuesSerializer.Instance, goal, deadline);
+        DateTimeOffset? deadline = null,
+        Func<string?>? fingerprint = null) =>
+        new(name, test, CountConstraint, BettererFileIssuesSerializer.Instance, goal, deadline, fingerprint: fingerprint);
 
     public static BettererTest<BettererFileIssues> Create(
         string name,
         Func<BettererFileIssues> test,
         Func<BettererFileIssues, bool>? goal = null,
-        DateTimeOffset? deadline = null) =>
-        Create(name, _ => Task.FromResult(test()), goal, deadline);
+        DateTimeOffset? deadline = null,
+        Func<string?>? fingerprint = null) =>
+        Create(name, _ => Task.FromResult(test()), goal, deadline, fingerprint);
 }

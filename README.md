@@ -126,6 +126,10 @@ await new Betterer().AssertAsync(BettererRoslynTest.Diagnostics(
     compilationOptions: new CSharpCompilationOptions(
         OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable)));
 
+// Nullable-adoption preset (BettererNet.Roslyn.MSBuild): the turnkey "enable #nullable and
+// burn the warnings down" recipe over a real project — goal defaults to zero.
+await new Betterer().AssertAsync(BettererNullableTest.Create("Nullable", "src/App/App.csproj"));
+
 // Roslyn syntax query (the tsquery analog): count nodes you want to eliminate.
 await new Betterer().AssertAsync(BettererRoslynTest.SyntaxQuery(
     "NoGoto", sourceFiles, node => node is GotoStatementSyntax));
@@ -144,40 +148,61 @@ await new Betterer().AssertAsync(BettererArchTest.Create("Layering", () =>
 
 // SARIF: import any analyzer's report (the whole SARIF ecosystem) as a file test.
 await new Betterer().AssertAsync(BettererSarifTest.Create("Analyzers", "analysis.sarif"));
+
+// dotnet format: adopt strict formatting/style incrementally. Run
+// `dotnet format --verify-no-changes --report format-report.json` in CI, then track its findings.
+await new Betterer().AssertAsync(BettererFormatTest.Create("Format", "format-report.json"));
 ```
 
 ## CLI
 
-The `betterernet` tool (`BettererNet.Cli`) runs a suite defined in a **compiled config assembly** —
-a class library that implements `IBettererSuiteProvider`:
+Install the tool, then define a suite — declaratively or in code:
 
-```csharp
-public sealed class BettererConfig : IBettererSuiteProvider
+```bash
+dotnet tool install --global BettererNet.Cli   # run as `betterernet`
+```
+
+**Declarative `betterer.json`** (no code; covers the data-driven tests — regex, coverage, SARIF, dotnet-format):
+
+```json
 {
-    public IEnumerable<IBettererTest> GetTests()
-    {
-        yield return BettererRegexTest.Create("NoTodos", "TODO", new[] { "**/*.cs" });
-    }
+  "results": ".betterer.results",
+  "tests": {
+    "NoTodos":   { "type": "regex",    "pattern": "TODO", "includes": ["**/*.cs"] },
+    "Coverage":  { "type": "coverage", "report": "coverage.cobertura.xml", "goalZero": true },
+    "Analyzers": { "type": "sarif",    "report": "analysis.sarif", "levels": ["error"],
+                   "owner": "@platform-team", "budget": 50 }
+  }
 }
 ```
 
-Build it, then point the tool at the assembly:
+Any test can carry an **`owner`** (a person/team, surfaced in reports so debt routes to the right
+place) and a **`budget`** (a hard ceiling on the issue count — a run over budget fails even if it
+improved on its baseline, and is never recorded above the ceiling). In code, wrap any test with
+`.WithOwnership(owner, budget)`.
+
+`betterernet ci` auto-detects `betterer.json` in the working directory. Tests that need code (Roslyn
+syntax queries, NetArchTest rules) use a **compiled config assembly** — a class library implementing
+`IBettererSuiteProvider`, passed with `--config My.dll`.
 
 ```bash
-betterernet --config path/to/MyConfig.dll start     # run; record improvements, fail on regressions
-betterernet --config path/to/MyConfig.dll ci        # fail if the results file is out of date
-betterernet --config path/to/MyConfig.dll watch     # re-run on .cs changes
-betterernet --config path/to/MyConfig.dll precommit # run, then `git add` the results
-betterernet results                                 # print the current results file
-betterernet init                                    # scaffold a starter BettererConfig.cs
-betterernet init --automerge                         # also configure the git merge driver
-betterernet merge <base> <ours> <theirs>            # resolve a .betterer.results conflict
+betterernet start      # run; record improvements, fail on regressions
+betterernet ci         # fail if the results file is out of date or regressed (no write)
+betterernet watch      # re-run on .cs changes
+betterernet precommit  # run, then `git add` the results
+betterernet results    # print the current results file
+betterernet init       # scaffold a starter betterer.json (--automerge also sets up the git merge driver)
+betterernet merge <base> <ours> <theirs>   # resolve a .betterer.results conflict
 ```
 
 Common options: `--results <path>`, `--filter <regex>` (repeatable; a leading `!` negates),
 `--update` (accept regressions), `--workers <n>` (parallelism),
 `--reporter <console|github|silent>` (the `github` reporter emits CI annotations + a step-summary
-table), `--silent`.
+table), `--sarif <path>` (also write a SARIF report of current issues), `--markdown <path>` (run
+summary to post as a PR comment), `--history <path>` (append a snapshot + render a trend),
+`--cache` (skip tests with unchanged inputs), `--silent`.
+
+> Prefer NUnit, MSTest, or TUnit? `BettererNet.NUnit`, `BettererNet.MSTest`, and `BettererNet.TUnit` expose the same `new Betterer().AssertAsync(...)` API.
 
 With `--automerge` configured, git resolves `.betterer.results` conflicts automatically by taking
 the tightest baseline (so no branch's improvements are lost).

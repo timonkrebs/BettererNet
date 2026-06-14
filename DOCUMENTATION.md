@@ -45,12 +45,17 @@ it enforced automatically — without a long-lived branch.
 |---|---|
 | `BettererNet.Core` | The engine: tests, constraints, goals, results file, runner. |
 | `BettererNet.Xunit` | Assert against the baseline from xUnit tests (`dotnet test`). |
+| `BettererNet.NUnit` | The same `new Betterer().AssertAsync(...)` API, for NUnit tests. |
+| `BettererNet.MSTest` | The same, for MSTest tests. |
+| `BettererNet.TUnit` | The same, for TUnit tests (Microsoft.Testing.Platform). |
 | `BettererNet.Cli` | The `betterernet` tool (`init`/`start`/`ci`/`watch`/`precommit`/`results`/`merge`). |
 | `BettererNet.Regex` | `BettererRegexTest` — count regex matches across files. |
 | `BettererNet.Roslyn` | `BettererRoslynTest` — compiler diagnostics, analyzers, syntax queries. |
+| `BettererNet.Roslyn.MSBuild` | `BettererProjectTest` — analyse a real `.csproj`/`.sln` via MSBuildWorkspace; `BettererNullableTest` — nullable-adoption preset. |
 | `BettererNet.Coverage` | `BettererCoverageTest` — uncovered lines from a Cobertura report. |
 | `BettererNet.NetArchTest` | `BettererArchTest` — wrap a NetArchTest rule. |
 | `BettererNet.Sarif` | `BettererSarifTest` — import any SARIF report. |
+| `BettererNet.Format` | `BettererFormatTest` — track a `dotnet format` report (whitespace/imports/style). |
 
 All test types live in the `BettererNet` namespace.
 
@@ -144,7 +149,32 @@ BettererRoslynTest.Analyzers("Style", sourceFiles, analyzers);
 BettererRoslynTest.SyntaxQuery("NoGoto", sourceFiles, node => node is GotoStatementSyntax);
 ```
 
-`sourceFiles` is a list of `.cs` paths. (Whole-solution loading via MSBuild is on the roadmap.)
+`sourceFiles` is a list of `.cs` paths — a fast approximation that uses the host's references, fine
+for syntax queries. For **accurate** diagnostics (correct references, your project's nullable/build
+settings, the full source set, source generators), analyse the real project with
+`BettererNet.Roslyn.MSBuild` instead:
+
+```csharp
+// Whole-project / whole-solution analysis via MSBuildWorkspace (needs the .NET SDK at runtime).
+await new Betterer().AssertAsync(BettererProjectTest.FromProject(
+    "Nullable", "src/App/App.csproj", filter: d => d.Id.StartsWith("CS8")));
+
+await new Betterer().AssertAsync(BettererProjectTest.FromSolution("Warnings", "App.sln"));
+```
+
+#### Nullable-adoption preset
+
+Enabling nullable reference types on a mature codebase floods the build with `CS8600`–`CS86xx`
+warnings. `BettererNullableTest` is a turnkey wrapper over `FromProject` that filters to exactly those
+warnings with a goal of zero — set `<Nullable>enable</Nullable>` in the project, baseline the existing
+warnings, then burn them down without ever letting new ones in:
+
+```csharp
+// Tracks every nullable warning in the project; goal defaults to zero (fully adopted).
+await new Betterer().AssertAsync(BettererNullableTest.Create("Nullable", "src/App/App.csproj"));
+```
+
+Pass `goal:` / `deadline:` to set an intermediate target or a date by which adoption must complete.
 
 ### Coverage
 
@@ -170,6 +200,24 @@ Import any SARIF 2.1.0 report — the whole static-analysis ecosystem:
 BettererSarifTest.Create("Analyzers", "analysis.sarif");
 // optional: levels (default {"warning","error"}), e.g. new HashSet<string> { "error" }
 ```
+
+### dotnet format
+
+Adopt strict formatting and style incrementally — the .NET answer to enabling a lint config one rule
+at a time. Run `dotnet format` in *report-only* mode in CI so it lists, but doesn't apply, every
+whitespace, import-ordering, and analyzer/style fix; then ingest the report:
+
+```bash
+dotnet format --verify-no-changes --report format-report.json
+```
+
+```csharp
+BettererFormatTest.Create("Format", "format-report.json");
+// optional: diagnostics — track only certain DiagnosticIds, e.g. new HashSet<string> { "WHITESPACE" }
+```
+
+Baseline the report, then tighten `.editorconfig` and burn the findings down without ever letting new
+ones in.
 
 ### Counting
 
@@ -243,8 +291,67 @@ betterernet --config MyConfig.dll start  # the CLI records on first run too
 
 ## The CLI
 
-The `betterernet` tool runs a suite defined in a **compiled config assembly** — a class library
-that implements `IBettererSuiteProvider`:
+Install the global tool:
+
+```bash
+dotnet tool install --global BettererNet.Cli   # run as `betterernet`
+```
+
+### Declarative config (`betterer.json`)
+
+The simplest setup needs **no code** — a `betterer.json` describing the data-driven test types
+(regex, coverage, SARIF, dotnet-format). `betterernet ci` auto-detects `betterer.json` in the working
+directory (or pass `--config path/to/betterer.json`); relative paths resolve against the file.
+
+```json
+{
+  "results": ".betterer.results",
+  "tests": {
+    "NoTodos":   { "type": "regex",    "pattern": "TODO", "includes": ["**/*.cs"], "ignoreCase": false },
+    "Coverage":  { "type": "coverage", "report": "coverage.cobertura.xml", "goalZero": true },
+    "Analyzers": { "type": "sarif",    "report": "analysis.sarif", "levels": ["error"] },
+    "Format":    { "type": "format",   "report": "format-report.json", "diagnostics": ["WHITESPACE"] }
+  }
+}
+```
+
+Each test's key is its name; `goalZero: true` sets a goal of zero issues. `betterernet init`
+scaffolds a starter `betterer.json`.
+
+### Ownership & budgets
+
+For large teams, any test can carry two extra keys (or, in code, be wrapped with
+`.WithOwnership(owner, budget)`):
+
+```json
+{
+  "tests": {
+    "LegacyWarnings": {
+      "type": "regex", "pattern": "#pragma warning disable", "includes": ["**/*.cs"],
+      "owner": "@platform-team",
+      "budget": 50
+    }
+  }
+}
+```
+
+- **`owner`** — a person or team responsible for the test's debt. It's surfaced in the console
+  reporter (`[worse] LegacyWarnings (owner: @platform-team)`) so a regression routes to whoever owns
+  it, rather than the whole org.
+- **`budget`** — a *hard ceiling* on the issue count, distinct from the ratchet and the goal. A run
+  whose count exceeds the budget **fails the suite even if it improved on (or matched) its baseline**,
+  and an over-budget result is never recorded — so a baseline can't be seeded above the ceiling. Set
+  it at or above today's count to cap runaway growth while the ratchet drives the number down. (The
+  budget is also folded into the `--cache` fingerprint, so lowering it re-runs the test.)
+
+The ratchet says "no worse than last time"; the goal is the aspirational target; the budget is the
+line you've decided must never be crossed.
+
+### Compiled config (advanced)
+
+Tests that need code — Roslyn syntax queries, NetArchTest rules, custom `BettererTest<T>` — come from
+a **compiled config assembly**: a class library that implements `IBettererSuiteProvider`, passed with
+`--config My.dll`:
 
 ```csharp
 using System.Collections.Generic;
@@ -287,6 +394,10 @@ Options:
 | `--update` / `-u` | Accept regressions and record them. |
 | `--workers <n>` / `-w` | Run up to *n* tests concurrently. |
 | `--reporter <name>` / `-R` | `console` (default), `github`, or `silent` (case-insensitive). |
+| `--sarif <path>` | Also write a SARIF 2.1.0 report of the current issues (composes with the reporter). |
+| `--markdown <path>` | Also write a markdown run summary (verdict, per-test table, new issues) — post it as a PR comment from CI. |
+| `--history <path>` | Append a per-test count snapshot to a history file and render a markdown trend (burn-down) beside it. |
+| `--cache` / `--cache-path <path>` | Skip tests whose input files are unchanged, via a machine-local fingerprint cache (`.betterer.cache`; gitignore it). |
 | `--silent` / `-s` | Suppress reporter output. |
 
 Exit codes: `0` success, `1` a test failed / CI diff, `2` bad arguments or config load error.
@@ -304,10 +415,15 @@ configures the git merge driver so conflicts resolve automatically:
 
 ## Reporters & CI
 
-- **console** (default): a per-test line plus a summary.
-- **github**: emits `::error` annotations for failing tests and appends a markdown table to
-  `$GITHUB_STEP_SUMMARY` — use `--reporter github` in GitHub Actions.
+- **console** (default): a per-test line plus a summary; on a regression it lists the specific new
+  issues (`file:line message`).
+- **github**: per-new-issue `::error file=,line=` annotations (so they land on the PR diff), a
+  test-level error for failures, and a markdown table appended to `$GITHUB_STEP_SUMMARY` — use
+  `--reporter github` in GitHub Actions.
 - **silent**: no output.
+
+Additionally, `--sarif <path>` writes a SARIF 2.1.0 report of the current issues alongside the chosen
+reporter — upload it to GitHub Code Scanning, or re-import it with `BettererSarifTest`.
 
 A minimal GitHub Actions step:
 

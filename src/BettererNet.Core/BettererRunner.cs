@@ -3,7 +3,8 @@ namespace BettererNet;
 /// <summary>
 /// Runs a suite of tests against a results file using Betterer's default semantics: new results
 /// are recorded, improvements ratchet the baseline, and regressions fail the suite without
-/// overwriting the baseline (unless <see cref="BettererRunContext.Update"/> is set).
+/// overwriting the baseline (unless <see cref="BettererRunContext.Update"/> is set). When a
+/// <see cref="BettererCache"/> is supplied, tests whose input fingerprint is unchanged are skipped.
 /// </summary>
 public static class BettererRunner
 {
@@ -13,35 +14,66 @@ public static class BettererRunner
         BettererRunContext? context = null,
         bool write = true,
         int maxDegreeOfParallelism = 1,
+        BettererCache? cache = null,
         CancellationToken cancellationToken = default)
     {
         context ??= new BettererRunContext();
 
-        // Read baselines up front (cheap, single-threaded), then run the (possibly expensive) tests.
-        var inputs = tests.Select(test =>
-        {
-            resultsFile.TryGet(test.Name, out var baseline);
-            return (Test: test, Baseline: baseline);
-        }).ToList();
+        var testList = tests.ToList();
+        var summaries = new BettererRunSummary[testList.Count];
+        var fingerprints = new string?[testList.Count];
+        var toRun = new List<int>();
 
-        BettererRunSummary[] summaries;
-        if (maxDegreeOfParallelism <= 1 || inputs.Count <= 1)
+        // Decide cache hits first (computes input fingerprints). A test with an unchanged fingerprint
+        // and an existing baseline is skipped: its result is, by definition, the baseline.
+        for (var i = 0; i < testList.Count; i++)
         {
-            summaries = new BettererRunSummary[inputs.Count];
-            for (var i = 0; i < inputs.Count; i++)
+            var test = testList[i];
+            if (cache is not null)
             {
-                summaries[i] = await inputs[i].Test.RunAsync(inputs[i].Baseline, context, cancellationToken).ConfigureAwait(false);
+                fingerprints[i] = test.ComputeFingerprint();
+                if (fingerprints[i] is { } fingerprint
+                    && cache.TryGet(test.Name, out var cached) && cached == fingerprint
+                    && resultsFile.TryGet(test.Name, out var baseline))
+                {
+                    summaries[i] = new BettererRunSummary
+                    {
+                        Name = test.Name,
+                        Status = BettererRunStatus.Same,
+                        Result = baseline,
+                        Baseline = baseline,
+                        ShouldUpdateResults = false,
+                    };
+                    continue;
+                }
+            }
+
+            toRun.Add(i);
+        }
+
+        async Task RunAtAsync(int index)
+        {
+            var test = testList[index];
+            resultsFile.TryGet(test.Name, out var baseline);
+            summaries[index] = await test.RunAsync(baseline, context, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (maxDegreeOfParallelism <= 1 || toRun.Count <= 1)
+        {
+            foreach (var index in toRun)
+            {
+                await RunAtAsync(index).ConfigureAwait(false);
             }
         }
         else
         {
             using var throttle = new SemaphoreSlim(maxDegreeOfParallelism);
-            summaries = await Task.WhenAll(inputs.Select(async input =>
+            await Task.WhenAll(toRun.Select(async index =>
             {
                 await throttle.WaitAsync(cancellationToken).ConfigureAwait(false);
                 try
                 {
-                    return await input.Test.RunAsync(input.Baseline, context, cancellationToken).ConfigureAwait(false);
+                    await RunAtAsync(index).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -50,19 +82,33 @@ public static class BettererRunner
             })).ConfigureAwait(false);
         }
 
-        // Apply writes single-threaded so the results file stays consistent.
-        var changed = false;
-        foreach (var summary in summaries)
+        // Apply results and cache writes single-threaded so both files stay consistent.
+        var resultsChanged = false;
+        var cacheChanged = false;
+        for (var i = 0; i < testList.Count; i++)
         {
+            var summary = summaries[i];
             if (write && summary.ShouldUpdateResults && summary.Result is not null && resultsFile.Set(summary.Name, summary.Result))
             {
-                changed = true;
+                resultsChanged = true;
+            }
+
+            // Cache the fingerprint only when the result is recorded (not a failure), so the cache
+            // tracks the inputs of the accepted baseline.
+            if (cache is not null && fingerprints[i] is { } fingerprint && !summary.IsFailure && cache.Set(summary.Name, fingerprint))
+            {
+                cacheChanged = true;
             }
         }
 
-        if (write && changed)
+        if (write && resultsChanged)
         {
             await resultsFile.SaveAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        if (cache is not null && cacheChanged)
+        {
+            await cache.SaveAsync(cancellationToken).ConfigureAwait(false);
         }
 
         return new BettererSuiteSummary { Runs = summaries.ToList() };

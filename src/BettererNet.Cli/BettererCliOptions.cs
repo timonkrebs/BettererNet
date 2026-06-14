@@ -27,6 +27,18 @@ public sealed class BettererCliOptions
     /// </summary>
     public string? ReporterName { get; init; }
 
+    /// <summary>When set, also write a SARIF 2.1.0 report of the current issues to this path.</summary>
+    public string? SarifPath { get; init; }
+
+    /// <summary>When set, also write a markdown run summary to this path (e.g. to post as a PR comment).</summary>
+    public string? MarkdownPath { get; init; }
+
+    /// <summary>When set, append a per-test count snapshot to this history file and render a markdown trend beside it.</summary>
+    public string? HistoryPath { get; init; }
+
+    /// <summary>When set, use a machine-local fingerprint cache (at this path) to skip tests with unchanged inputs.</summary>
+    public string? CachePath { get; init; }
+
     /// <summary>
     /// An explicit reporter, taking precedence over the rest. When null, the reporter is chosen by
     /// <see cref="Silent"/> first, then <see cref="ReporterName"/>, defaulting to the console reporter.

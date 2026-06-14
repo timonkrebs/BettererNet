@@ -193,7 +193,7 @@ public sealed class BettererCliTests : IDisposable
         var code = BettererCli.Init(_dir, automerge: true);
 
         Assert.Equal(0, code);
-        Assert.True(File.Exists(Path.Combine(_dir, "BettererConfig.cs")));
+        Assert.True(File.Exists(Path.Combine(_dir, "betterer.json")));
         Assert.Contains("merge=betterer", File.ReadAllText(Path.Combine(_dir, ".gitattributes")));
     }
 
@@ -221,6 +221,45 @@ public sealed class BettererCliTests : IDisposable
 
         Assert.Null(error);
         Assert.Equal("github", options.ReporterName);
+    }
+
+    [Fact]
+    public void Parse_ReadsSarifPath()
+    {
+        var (_, options, error) = BettererCli.Parse(["ci", "--sarif", "out.sarif"]);
+
+        Assert.Null(error);
+        Assert.Equal("out.sarif", options.SarifPath);
+    }
+
+    [Fact]
+    public void Parse_ReadsCacheFlagAndPath()
+    {
+        var (_, withFlag, flagError) = BettererCli.Parse(["ci", "--cache"]);
+        Assert.Null(flagError);
+        Assert.Equal(BettererCache.DefaultFileName, withFlag.CachePath);
+
+        var (_, withPath, pathError) = BettererCli.Parse(["ci", "--cache-path", "x.cache"]);
+        Assert.Null(pathError);
+        Assert.Equal("x.cache", withPath.CachePath);
+    }
+
+    [Fact]
+    public void Parse_ReadsMarkdownPath()
+    {
+        var (_, options, error) = BettererCli.Parse(["ci", "--markdown", "betterer.md"]);
+
+        Assert.Null(error);
+        Assert.Equal("betterer.md", options.MarkdownPath);
+    }
+
+    [Fact]
+    public void Parse_ReadsHistoryPath()
+    {
+        var (_, options, error) = BettererCli.Parse(["start", "--history", "history.json"]);
+
+        Assert.Null(error);
+        Assert.Equal("history.json", options.HistoryPath);
     }
 
     private sealed class FakeReporter : IBettererReporter

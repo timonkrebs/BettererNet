@@ -34,7 +34,24 @@ public static class BettererRegexTest
         // hang via catastrophic backtracking (ReDoS).
         var regex = new Regex(pattern, options, matchTimeout ?? TimeSpan.FromSeconds(2));
         var root = Path.GetFullPath(baseDirectory ?? Directory.GetCurrentDirectory());
-        return BettererFileTest.Create(name, () => Scan(regex, root, includes), goal, deadline);
+        return BettererFileTest.Create(
+            name,
+            () => Scan(regex, root, includes),
+            goal,
+            deadline,
+            fingerprint: () => BettererFileFingerprint.Compute(MatchedFiles(root, includes)));
+    }
+
+    private static IEnumerable<string> MatchedFiles(string root, IReadOnlyList<string> includes)
+    {
+        var matcher = new Matcher();
+        foreach (var include in includes)
+        {
+            matcher.AddInclude(include);
+        }
+
+        return matcher.Execute(new DirectoryInfoWrapper(new DirectoryInfo(root))).Files
+            .Select(file => Path.Combine(root, file.Path));
     }
 
     private static BettererFileIssues Scan(Regex regex, string root, IReadOnlyList<string> includes)

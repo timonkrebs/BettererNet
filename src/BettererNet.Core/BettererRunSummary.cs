@@ -21,6 +21,15 @@ public sealed class BettererRunSummary
     /// <summary>The exception thrown by the test function, if <see cref="Status"/> is <see cref="BettererRunStatus.Failed"/>.</summary>
     public Exception? Error { get; init; }
 
+    /// <summary>The owner (person or team) responsible for this test's debt, if it was tagged.</summary>
+    public string? Owner { get; init; }
+
+    /// <summary>The configured issue budget (a hard ceiling), if any.</summary>
+    public int? Budget { get; init; }
+
+    /// <summary>Whether the result exceeded its <see cref="Budget"/> — which forces the run to fail.</summary>
+    public bool IsOverBudget { get; init; }
+
     /// <summary>Whether this run should fail the suite.</summary>
     public bool IsFailure => Status is BettererRunStatus.Worse or BettererRunStatus.Failed or BettererRunStatus.Expired;
 

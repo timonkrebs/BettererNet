@@ -20,7 +20,12 @@ public static class BettererSarifTest
         DateTimeOffset? deadline = null)
     {
         var included = levels ?? DefaultLevels;
-        return BettererFileTest.Create(name, () => Parse(sarifReportPath, included), goal, deadline);
+        return BettererFileTest.Create(
+            name,
+            () => Parse(sarifReportPath, included),
+            goal,
+            deadline,
+            fingerprint: () => BettererFileFingerprint.Compute(new[] { sarifReportPath }));
     }
 
     private static BettererFileIssues Parse(string reportPath, ISet<string> levels)

@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>BettererNet</RootNamespace>
+    <AssemblyName>BettererNet.Roslyn.MSBuild</AssemblyName>
+    <Description>Analyse a real .csproj/.sln via MSBuildWorkspace — accurate references, build options, and the full source set.</Description>
+    <!-- Transitive MSBuild tasks package carries an advisory; we use the SDK's MSBuild at runtime. -->
+    <NoWarn>$(NoWarn);NU1903</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Build.Locator" Version="1.11.2" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="4.14.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.14.0" />
+    <!-- Compile against MSBuild, but load the SDK's copy at runtime (Microsoft.Build.Locator MSBL001). -->
+    <PackageReference Include="Microsoft.Build" Version="17.7.2" ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Build.Framework" Version="17.7.2" ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Build.Tasks.Core" Version="17.7.2" ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.7.2" ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.NET.StringTools" Version="17.7.2" ExcludeAssets="runtime" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BettererNet.Core\BettererNet.Core.csproj" />
+  </ItemGroup>
+
+</Project>
