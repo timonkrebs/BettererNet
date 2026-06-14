@@ -49,6 +49,7 @@ it enforced automatically — without a long-lived branch.
 | `BettererNet.Cli` | The `betterernet` tool (`init`/`start`/`ci`/`watch`/`precommit`/`results`/`merge`). |
 | `BettererNet.Regex` | `BettererRegexTest` — count regex matches across files. |
 | `BettererNet.Roslyn` | `BettererRoslynTest` — compiler diagnostics, analyzers, syntax queries. |
+| `BettererNet.Roslyn.MSBuild` | `BettererProjectTest` — analyse a real `.csproj`/`.sln` via MSBuildWorkspace. |
 | `BettererNet.Coverage` | `BettererCoverageTest` — uncovered lines from a Cobertura report. |
 | `BettererNet.NetArchTest` | `BettererArchTest` — wrap a NetArchTest rule. |
 | `BettererNet.Sarif` | `BettererSarifTest` — import any SARIF report. |
@@ -145,7 +146,18 @@ BettererRoslynTest.Analyzers("Style", sourceFiles, analyzers);
 BettererRoslynTest.SyntaxQuery("NoGoto", sourceFiles, node => node is GotoStatementSyntax);
 ```
 
-`sourceFiles` is a list of `.cs` paths. (Whole-solution loading via MSBuild is on the roadmap.)
+`sourceFiles` is a list of `.cs` paths — a fast approximation that uses the host's references, fine
+for syntax queries. For **accurate** diagnostics (correct references, your project's nullable/build
+settings, the full source set, source generators), analyse the real project with
+`BettererNet.Roslyn.MSBuild` instead:
+
+```csharp
+// Whole-project / whole-solution analysis via MSBuildWorkspace (needs the .NET SDK at runtime).
+await new Betterer().AssertAsync(BettererProjectTest.FromProject(
+    "Nullable", "src/App/App.csproj", filter: d => d.Id.StartsWith("CS8")));
+
+await new Betterer().AssertAsync(BettererProjectTest.FromSolution("Warnings", "App.sln"));
+```
 
 ### Coverage
 

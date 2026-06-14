@@ -11,8 +11,9 @@ and to add `.NET`-native capabilities on top.
 > **Progress:** ✅ Phases 0-4 complete and Phase 5 underway — the engine, the xUnit adapter, the
 > built-in integrations (now including SARIF import), the `betterernet` CLI with
 > merge/automerge/`--workers`, a GitHub Actions reporter, **NuGet packaging + the global tool, and a
-> declarative `betterer.json`, and diff-surfacing reporters** are in place. ▶️ Next in **Phase 6**:
-> MSBuild-workspace loading and a trend/PR-comment report (see §5). Section 1 below describes the pre-Phase-0 baseline.
+> declarative `betterer.json`, diff-surfacing reporters, SARIF export, an NUnit adapter, and
+> MSBuild-workspace loading** are in place. ▶️ Next in **Phase 6**: content-based file hashing +
+> `--cache`, and a trend/PR-comment report (see §5). Section 1 below describes the pre-Phase-0 baseline.
 
 ---
 
@@ -196,8 +197,10 @@ At functional parity, the highest-value work is making BettererNet *adoptable* a
 - ☐ **Trend report / history** — store run history and emit an HTML/markdown burn-down chart.
 
 **Tier 3 — depth & performance:**
-- ☐ **MSBuild-workspace loading** for the Roslyn tests — analyse a real `.sln`/`.csproj` instead of
-  explicit source paths; also unlocks content-based file hashing. The most impactful single feature.
+- ✅ **MSBuild-workspace loading** (`BettererNet.Roslyn.MSBuild` → `BettererProjectTest.FromProject` /
+  `FromSolution`) — analyse a real `.csproj`/`.sln` with its actual references, build options, and full
+  source set via `MSBuildWorkspace` (needs the .NET SDK at runtime). Content-based hashing + `--cache`
+  can build on this next.
 - ☐ **`--cache`** incremental runs (carried over from Phase 4).
 - ☐ **Nullable-adoption preset** and **`dotnet format` / EditorConfig** integration.
 - ✅ **SARIF export** — `--sarif <path>` writes a SARIF 2.1.0 report of the current issues (composes
@@ -237,13 +240,12 @@ declarative `betterer.json`, verified end-to-end (packed, installed, ran a confi
 assembly).
 
 Done so far in Phase 6: Tier 1 (packaging, global tool, declarative `betterer.json`); the diff-
-surfacing reporters; **SARIF export** (`--sarif`); and an **NUnit adapter** (the adapter core is now
-framework-agnostic in `BettererAssertions`).
+surfacing reporters; **SARIF export**; an **NUnit adapter** (framework-agnostic `BettererAssertions`);
+and **MSBuild-workspace loading** (`BettererProjectTest`) — real-project Roslyn analysis.
 
 Next, highest-value first:
 
-1. **MSBuild-workspace loading** for the Roslyn tests — analyse a real `.sln`/`.csproj` instead of
-   explicit source paths (also unlocks content-based file hashing). Recipe is proven; needs a
-   dedicated test project.
+1. **Content-based file hashing + `--cache`** — now feasible on the MSBuild workspace; lets file tests
+   track issues precisely as code moves and skip unchanged files.
 2. **PR-comment reporter** and a **trend/history report**; then MSTest/TUnit adapters,
    ownership/budgets, and the nullable-adoption preset.
