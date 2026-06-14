@@ -11,6 +11,12 @@ public interface IBettererTest
     /// <summary>Whether this test is skipped.</summary>
     bool IsSkipped { get; }
 
+    /// <summary>
+    /// A content fingerprint of the test's inputs, or <c>null</c> if it can't be cached. When it
+    /// matches the cached value, the runner skips the test (its result is unchanged).
+    /// </summary>
+    string? ComputeFingerprint();
+
     /// <summary>Run the test and compare its result against <paramref name="baselineValue"/>.</summary>
     Task<BettererRunSummary> RunAsync(
         JsonNode? baselineValue,

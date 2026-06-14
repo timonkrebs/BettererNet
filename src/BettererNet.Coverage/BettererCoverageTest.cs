@@ -16,7 +16,12 @@ public static class BettererCoverageTest
         string coberturaReportPath,
         Func<BettererFileIssues, bool>? goal = null,
         DateTimeOffset? deadline = null) =>
-        BettererFileTest.Create(name, () => Parse(coberturaReportPath), goal, deadline);
+        BettererFileTest.Create(
+            name,
+            () => Parse(coberturaReportPath),
+            goal,
+            deadline,
+            fingerprint: () => BettererFileFingerprint.Compute(new[] { coberturaReportPath }));
 
     private static BettererFileIssues Parse(string reportPath)
     {

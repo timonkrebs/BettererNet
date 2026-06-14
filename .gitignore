@@ -36,5 +36,8 @@ msbuild.wrn
 # Visual Studio 2015
 .vs/
 
-# Betterer: the results file itself IS committed; ignore only the atomic-write artifact.
+# Betterer: the results file itself IS committed; ignore the atomic-write artifact and the
+# machine-local run cache.
 *.betterer.results.tmp
+.betterer.cache
+.betterer.cache.tmp

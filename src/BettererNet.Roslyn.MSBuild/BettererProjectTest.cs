@@ -26,7 +26,12 @@ public static class BettererProjectTest
     {
         var matches = filter ?? (diagnostic => diagnostic.Severity >= DiagnosticSeverity.Warning);
         var baseDir = baseDirectory ?? Path.GetDirectoryName(Path.GetFullPath(projectPath))!;
-        return BettererFileTest.Create(name, ct => AnalyzeProjectAsync(projectPath, matches, baseDir, ct), goal, deadline);
+        return BettererFileTest.Create(
+            name,
+            ct => AnalyzeProjectAsync(projectPath, matches, baseDir, ct),
+            goal,
+            deadline,
+            fingerprint: () => BettererFileFingerprint.Compute(EnumerateInputs(projectPath)));
     }
 
     /// <summary>Track compiler diagnostics across every project in a <c>.sln</c>.</summary>
@@ -40,7 +45,12 @@ public static class BettererProjectTest
     {
         var matches = filter ?? (diagnostic => diagnostic.Severity >= DiagnosticSeverity.Warning);
         var baseDir = baseDirectory ?? Path.GetDirectoryName(Path.GetFullPath(solutionPath))!;
-        return BettererFileTest.Create(name, ct => AnalyzeSolutionAsync(solutionPath, matches, baseDir, ct), goal, deadline);
+        return BettererFileTest.Create(
+            name,
+            ct => AnalyzeSolutionAsync(solutionPath, matches, baseDir, ct),
+            goal,
+            deadline,
+            fingerprint: () => BettererFileFingerprint.Compute(EnumerateInputs(solutionPath)));
     }
 
     private static async Task<BettererFileIssues> AnalyzeProjectAsync(string projectPath, Func<Diagnostic, bool> matches, string baseDir, CancellationToken ct)
@@ -118,4 +128,32 @@ public static class BettererProjectTest
 
     private static string Relativize(string path, string baseDir) =>
         Path.GetRelativePath(baseDir, Path.GetFullPath(path)).Replace('\\', '/');
+
+    // The cache fingerprint: the project/solution file plus its source (excluding build output).
+    private static IEnumerable<string> EnumerateInputs(string projectOrSolutionPath)
+    {
+        var fullPath = Path.GetFullPath(projectOrSolutionPath);
+        yield return fullPath;
+
+        var directory = Path.GetDirectoryName(fullPath);
+        if (directory is null)
+        {
+            yield break;
+        }
+
+        foreach (var source in Directory.EnumerateFiles(directory, "*.cs", SearchOption.AllDirectories))
+        {
+            if (!IsBuildOutput(source))
+            {
+                yield return source;
+            }
+        }
+    }
+
+    private static bool IsBuildOutput(string path)
+    {
+        var separator = Path.DirectorySeparatorChar;
+        return path.Contains($"{separator}bin{separator}", StringComparison.Ordinal)
+            || path.Contains($"{separator}obj{separator}", StringComparison.Ordinal);
+    }
 }

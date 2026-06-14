@@ -44,10 +44,11 @@ public static class BettererCli
         var reporter = ResolveReporter(options);
         var selected = Filter(tests, options.Filters);
         var resultsFile = await BettererResultsFile.LoadAsync(options.ResultsPath, cancellationToken).ConfigureAwait(false);
+        var cache = await LoadCacheAsync(options, cancellationToken).ConfigureAwait(false);
         var context = new BettererRunContext { Update = options.Update };
 
         var summary = await BettererRunner
-            .RunAsync(selected, resultsFile, context, write: true, maxDegreeOfParallelism: options.Workers, cancellationToken: cancellationToken)
+            .RunAsync(selected, resultsFile, context, write: true, maxDegreeOfParallelism: options.Workers, cache: cache, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
         Report(reporter, summary);
         return summary.IsFailure ? 1 : 0;
@@ -59,9 +60,10 @@ public static class BettererCli
         var reporter = ResolveReporter(options);
         var selected = Filter(tests, options.Filters);
         var resultsFile = await BettererResultsFile.LoadAsync(options.ResultsPath, cancellationToken).ConfigureAwait(false);
+        var cache = await LoadCacheAsync(options, cancellationToken).ConfigureAwait(false);
 
         var summary = await BettererRunner
-            .RunAsync(selected, resultsFile, new BettererRunContext(), write: false, maxDegreeOfParallelism: options.Workers, cancellationToken: cancellationToken)
+            .RunAsync(selected, resultsFile, new BettererRunContext(), write: false, maxDegreeOfParallelism: options.Workers, cache: cache, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
         Report(reporter, summary);
 
@@ -198,6 +200,7 @@ public static class BettererCli
         var workers = 1;
         string? reporter = null;
         string? sarifPath = null;
+        string? cachePath = null;
         bool update = false, strict = false, silent = false;
 
         for (var i = 0; i < args.Count; i++)
@@ -252,6 +255,19 @@ public static class BettererCli
                     sarifPath = args[i];
                     break;
 
+                case "--cache":
+                    cachePath = BettererCache.DefaultFileName;
+                    break;
+
+                case "--cache-path":
+                    if (++i >= args.Count)
+                    {
+                        return (command, new BettererCliOptions(), "Missing value for --cache-path.");
+                    }
+
+                    cachePath = args[i];
+                    break;
+
                 case "-R" or "--reporter":
                     if (++i >= args.Count)
                     {
@@ -293,6 +309,7 @@ public static class BettererCli
             Workers = workers,
             ReporterName = reporter,
             SarifPath = sarifPath,
+            CachePath = cachePath,
         };
         return (command, options, null);
     }
@@ -300,6 +317,9 @@ public static class BettererCli
     // Filter patterns are user-provided; compile each once with a match timeout so a pathological
     // pattern can't hang the CLI via catastrophic backtracking (ReDoS).
     private static readonly TimeSpan FilterTimeout = TimeSpan.FromSeconds(1);
+
+    private static async Task<BettererCache?> LoadCacheAsync(BettererCliOptions options, CancellationToken cancellationToken) =>
+        options.CachePath is null ? null : await BettererCache.LoadAsync(options.CachePath, cancellationToken).ConfigureAwait(false);
 
     private static IEnumerable<IBettererTest> Filter(IEnumerable<IBettererTest> tests, IReadOnlyList<string> filters)
     {

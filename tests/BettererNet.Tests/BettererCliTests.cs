@@ -232,6 +232,18 @@ public sealed class BettererCliTests : IDisposable
         Assert.Equal("out.sarif", options.SarifPath);
     }
 
+    [Fact]
+    public void Parse_ReadsCacheFlagAndPath()
+    {
+        var (_, withFlag, flagError) = BettererCli.Parse(["ci", "--cache"]);
+        Assert.Null(flagError);
+        Assert.Equal(BettererCache.DefaultFileName, withFlag.CachePath);
+
+        var (_, withPath, pathError) = BettererCli.Parse(["ci", "--cache-path", "x.cache"]);
+        Assert.Null(pathError);
+        Assert.Equal("x.cache", withPath.CachePath);
+    }
+
     private sealed class FakeReporter : IBettererReporter
     {
         public void ReportRun(BettererRunSummary run)
