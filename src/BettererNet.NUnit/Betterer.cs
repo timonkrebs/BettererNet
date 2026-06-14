@@ -1,11 +1,11 @@
 using System.Runtime.CompilerServices;
-using Xunit;
+using NUnit.Framework;
 
 namespace BettererNet;
 
 /// <summary>
-/// xUnit adapter for Betterer. A thin wrapper over <see cref="BettererAssertions"/> that fails the
-/// xUnit test (via <c>Assert.Fail</c>) when a result is new without opt-in, regresses, or expires.
+/// NUnit adapter for Betterer. A thin wrapper over <see cref="BettererAssertions"/> that fails the
+/// NUnit test (via <c>Assert.Fail</c>) when a result is new without opt-in, regresses, or expires.
 /// </summary>
 public sealed class Betterer
 {

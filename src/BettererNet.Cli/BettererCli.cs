@@ -197,6 +197,7 @@ public static class BettererCli
         var filters = new List<string>();
         var workers = 1;
         string? reporter = null;
+        string? sarifPath = null;
         bool update = false, strict = false, silent = false;
 
         for (var i = 0; i < args.Count; i++)
@@ -242,6 +243,15 @@ public static class BettererCli
                     silent = true;
                     break;
 
+                case "--sarif":
+                    if (++i >= args.Count)
+                    {
+                        return (command, new BettererCliOptions(), "Missing value for --sarif.");
+                    }
+
+                    sarifPath = args[i];
+                    break;
+
                 case "-R" or "--reporter":
                     if (++i >= args.Count)
                     {
@@ -282,6 +292,7 @@ public static class BettererCli
             Silent = silent,
             Workers = workers,
             ReporterName = reporter,
+            SarifPath = sarifPath,
         };
         return (command, options, null);
     }
@@ -323,17 +334,18 @@ public static class BettererCli
             return options.Reporter;
         }
 
-        if (options.Silent)
-        {
-            return new BettererSilentReporter();
-        }
+        IBettererReporter primary = options.Silent
+            ? new BettererSilentReporter()
+            : options.ReporterName?.ToLowerInvariant() switch
+            {
+                "github" => new BettererGitHubActionsReporter(),
+                "silent" => new BettererSilentReporter(),
+                _ => new BettererConsoleReporter(),
+            };
 
-        return options.ReporterName?.ToLowerInvariant() switch
-        {
-            "github" => new BettererGitHubActionsReporter(),
-            "silent" => new BettererSilentReporter(),
-            _ => new BettererConsoleReporter(),
-        };
+        return string.IsNullOrEmpty(options.SarifPath)
+            ? primary
+            : new BettererCompositeReporter(primary, new BettererSarifReporter(options.SarifPath));
     }
 
     private static void Report(IBettererReporter reporter, BettererSuiteSummary summary)

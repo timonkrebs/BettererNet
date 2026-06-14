@@ -184,7 +184,9 @@ betterernet merge <base> <ours> <theirs>   # resolve a .betterer.results conflic
 Common options: `--results <path>`, `--filter <regex>` (repeatable; a leading `!` negates),
 `--update` (accept regressions), `--workers <n>` (parallelism),
 `--reporter <console|github|silent>` (the `github` reporter emits CI annotations + a step-summary
-table), `--silent`.
+table), `--sarif <path>` (also write a SARIF report of current issues), `--silent`.
+
+> Use NUnit instead of xUnit? `BettererNet.NUnit` exposes the same `new Betterer().AssertAsync(...)` API.
 
 With `--automerge` configured, git resolves `.betterer.results` conflicts automatically by taking
 the tightest baseline (so no branch's improvements are lost).

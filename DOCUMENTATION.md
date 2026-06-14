@@ -45,6 +45,7 @@ it enforced automatically — without a long-lived branch.
 |---|---|
 | `BettererNet.Core` | The engine: tests, constraints, goals, results file, runner. |
 | `BettererNet.Xunit` | Assert against the baseline from xUnit tests (`dotnet test`). |
+| `BettererNet.NUnit` | The same `new Betterer().AssertAsync(...)` API, for NUnit tests. |
 | `BettererNet.Cli` | The `betterernet` tool (`init`/`start`/`ci`/`watch`/`precommit`/`results`/`merge`). |
 | `BettererNet.Regex` | `BettererRegexTest` — count regex matches across files. |
 | `BettererNet.Roslyn` | `BettererRoslynTest` — compiler diagnostics, analyzers, syntax queries. |
@@ -316,6 +317,7 @@ Options:
 | `--update` / `-u` | Accept regressions and record them. |
 | `--workers <n>` / `-w` | Run up to *n* tests concurrently. |
 | `--reporter <name>` / `-R` | `console` (default), `github`, or `silent` (case-insensitive). |
+| `--sarif <path>` | Also write a SARIF 2.1.0 report of the current issues (composes with the reporter). |
 | `--silent` / `-s` | Suppress reporter output. |
 
 Exit codes: `0` success, `1` a test failed / CI diff, `2` bad arguments or config load error.
@@ -339,6 +341,9 @@ configures the git merge driver so conflicts resolve automatically:
   test-level error for failures, and a markdown table appended to `$GITHUB_STEP_SUMMARY` — use
   `--reporter github` in GitHub Actions.
 - **silent**: no output.
+
+Additionally, `--sarif <path>` writes a SARIF 2.1.0 report of the current issues alongside the chosen
+reporter — upload it to GitHub Code Scanning, or re-import it with `BettererSarifTest`.
 
 A minimal GitHub Actions step:
 

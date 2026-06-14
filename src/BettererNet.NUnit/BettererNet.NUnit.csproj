@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>BettererNet</RootNamespace>
+    <AssemblyName>BettererNet.NUnit</AssemblyName>
+    <Description>NUnit adapter for BettererNet — assert against the baseline from NUnit tests.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NUnit" Version="4.6.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BettererNet.Core\BettererNet.Core.csproj" />
+  </ItemGroup>
+
+</Project>

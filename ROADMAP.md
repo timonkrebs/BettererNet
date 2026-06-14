@@ -200,10 +200,12 @@ At functional parity, the highest-value work is making BettererNet *adoptable* a
   explicit source paths; also unlocks content-based file hashing. The most impactful single feature.
 - ☐ **`--cache`** incremental runs (carried over from Phase 4).
 - ☐ **Nullable-adoption preset** and **`dotnet format` / EditorConfig** integration.
-- ☐ **SARIF export** to complement import (feeds GitHub Code Scanning).
+- ✅ **SARIF export** — `--sarif <path>` writes a SARIF 2.1.0 report of the current issues (composes
+  with any reporter; round-trips through SARIF import; feeds GitHub Code Scanning).
 
 **Tier 4 — ecosystem & robustness:**
-- ☐ **More test-framework adapters** (NUnit, MSTest, TUnit) — xUnit only today.
+- ◐ **More test-framework adapters** — ✅ NUnit (`BettererNet.NUnit`); the adapter orchestration now
+  lives framework-agnostically in `BettererAssertions`, so MSTest/TUnit are thin shims away.
 - ☐ **Per-test ownership & budgets** — owners/teams and per-area budgets.
 - ☐ **Cross-process-safe results file** — the xUnit adapter's lock is process-wide, so parallel
   test *projects* could still race.
@@ -234,12 +236,14 @@ merge/automerge/`--workers`, and a **GitHub Actions reporter** — all covered e
 declarative `betterer.json`, verified end-to-end (packed, installed, ran a config with no compiled
 assembly).
 
-Done so far in Phase 6: Tier 1 (packaging, global tool, declarative `betterer.json`) and the first
-Tier 2 item — the console and GitHub reporters now surface the per-issue diff on a regression.
+Done so far in Phase 6: Tier 1 (packaging, global tool, declarative `betterer.json`); the diff-
+surfacing reporters; **SARIF export** (`--sarif`); and an **NUnit adapter** (the adapter core is now
+framework-agnostic in `BettererAssertions`).
 
 Next, highest-value first:
 
 1. **MSBuild-workspace loading** for the Roslyn tests — analyse a real `.sln`/`.csproj` instead of
-   explicit source paths (also unlocks content-based file hashing).
-2. **PR-comment reporter** and a **trend/history report**, then the remaining value-adds (more
-   test-framework adapters, ownership/budgets, …).
+   explicit source paths (also unlocks content-based file hashing). Recipe is proven; needs a
+   dedicated test project.
+2. **PR-comment reporter** and a **trend/history report**; then MSTest/TUnit adapters,
+   ownership/budgets, and the nullable-adoption preset.

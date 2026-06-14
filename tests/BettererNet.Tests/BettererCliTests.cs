@@ -223,6 +223,15 @@ public sealed class BettererCliTests : IDisposable
         Assert.Equal("github", options.ReporterName);
     }
 
+    [Fact]
+    public void Parse_ReadsSarifPath()
+    {
+        var (_, options, error) = BettererCli.Parse(["ci", "--sarif", "out.sarif"]);
+
+        Assert.Null(error);
+        Assert.Equal("out.sarif", options.SarifPath);
+    }
+
     private sealed class FakeReporter : IBettererReporter
     {
         public void ReportRun(BettererRunSummary run)
