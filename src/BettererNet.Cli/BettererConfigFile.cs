@@ -11,6 +11,10 @@ namespace BettererNet.Cli;
 /// </summary>
 public static class BettererConfigFile
 {
+    // Regex tests glob the repo, so skip generated build output by default; an explicit "excludes"
+    // overrides this.
+    private static readonly string[] DefaultExcludes = { "**/bin/**", "**/obj/**" };
+
     /// <summary>Whether <paramref name="path"/> looks like a declarative config rather than an assembly.</summary>
     public static bool IsConfigFile(string path) =>
         path.EndsWith(".json", StringComparison.OrdinalIgnoreCase) ||
@@ -75,6 +79,7 @@ public static class BettererConfigFile
                 name,
                 Required(spec, name, "pattern"),
                 ReadStringList(spec["includes"]) ?? new[] { "**/*.cs" },
+                excludes: ReadStringList(spec["excludes"]) ?? DefaultExcludes,
                 baseDirectory: ReadOptionalDirectory(spec["baseDirectory"], baseDirectory),
                 options: (spec["ignoreCase"]?.GetValue<bool>() ?? false) ? RegexOptions.IgnoreCase : RegexOptions.None,
                 goal: goal),

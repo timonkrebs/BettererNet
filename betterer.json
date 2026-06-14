@@ -1,0 +1,25 @@
+{
+  "results": ".betterer.results",
+  "tests": {
+    "No sync-over-async": {
+      "type": "regex",
+      "pattern": "\\.GetAwaiter\\(\\)\\.GetResult\\(\\)",
+      "includes": ["src/**/*.cs"]
+    },
+    "No suppressed warnings": {
+      "type": "regex",
+      "pattern": "#pragma warning disable",
+      "includes": ["src/**/*.cs"]
+    },
+    "No NotImplementedException": {
+      "type": "regex",
+      "pattern": "throw new NotImplementedException",
+      "includes": ["src/**/*.cs"]
+    },
+    "No async void": {
+      "type": "regex",
+      "pattern": "async void",
+      "includes": ["src/**/*.cs"]
+    }
+  }
+}

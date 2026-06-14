@@ -57,6 +57,21 @@ public sealed class BettererConfigFileTests : IDisposable
     }
 
     [Fact]
+    public async Task RegexTest_FromConfig_ExcludesBinObjByDefault()
+    {
+        Write("src/a.cs", "// TODO\n");
+        Write("obj/generated.cs", "// TODO\n"); // generated build output must not be counted
+        var json = Write("betterer.json", """
+            { "tests": { "Todos": { "type": "regex", "pattern": "TODO", "includes": ["**/*.cs"] } } }
+            """);
+
+        var (tests, _) = BettererConfigFile.Load(json);
+        var issues = await Run(Assert.Single(tests));
+
+        Assert.Equal(1, issues.TotalCount);
+    }
+
+    [Fact]
     public async Task OwnerAndBudget_FromConfig_AreApplied()
     {
         // Two TODOs, but the budget is 1 — the test must fail (over budget) and carry the owner.

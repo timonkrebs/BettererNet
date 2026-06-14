@@ -126,8 +126,9 @@ config (see [The CLI](#the-cli)). `goal` and `deadline` are optional on all of t
 Count matches of a pattern across globbed files — ban an API or burn down TODOs.
 
 ```csharp
-BettererRegexTest.Create("NoConsoleWriteLine", @"Console\.WriteLine", new[] { "**/*.cs" });
-// signature: Create(name, pattern, includes, baseDirectory?, options?, matchTimeout?, goal?, deadline?)
+BettererRegexTest.Create("NoConsoleWriteLine", @"Console\.WriteLine", new[] { "**/*.cs" },
+    excludes: new[] { "**/obj/**", "**/bin/**" });
+// signature: Create(name, pattern, includes, excludes?, baseDirectory?, options?, matchTimeout?, goal?, deadline?)
 ```
 
 ### Roslyn (compiler diagnostics, analyzers, syntax queries)
@@ -317,6 +318,13 @@ directory (or pass `--config path/to/betterer.json`); relative paths resolve aga
 
 Each test's key is its name; `goalZero: true` sets a goal of zero issues. `betterernet init`
 scaffolds a starter `betterer.json`.
+
+Regex tests glob from the config's directory and **exclude `**/bin/**` and `**/obj/**` by default** so
+generated build output isn't counted. Override with an explicit `"excludes": [ ... ]`:
+
+```json
+"NoTodos": { "type": "regex", "pattern": "TODO", "includes": ["src/**/*.cs"], "excludes": ["**/obj/**"] }
+```
 
 ### Ownership & budgets
 

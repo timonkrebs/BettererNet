@@ -29,3 +29,7 @@ jobs:
 
       - name: Test
         run: dotnet test BettererNet.sln --configuration Release --no-build --verbosity normal
+
+      # Dogfood: BettererNet guards its own codebase via betterer.json (auto-detected).
+      - name: BettererNet self-check
+        run: dotnet run --project src/BettererNet.Cli --configuration Release --no-build -- ci --reporter github
