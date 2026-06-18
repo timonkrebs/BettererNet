@@ -46,8 +46,8 @@ jobs:
           fi
           VERSION="${VERSION#v}" # tags are vX.Y.Z; also tolerate a leading v in manual input
           # Validate as SemVer before it flows into build/pack/push. The input is
-          # attacker-influenceable on manual runs, and passing it via env (not inline
-          # ${{ }} interpolation) plus this check avoids shell injection and bad versions.
+          # attacker-influenceable on manual runs; passing it via env (not inline
+          # template interpolation) plus this check avoids shell injection and bad versions.
           if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$'; then
             echo "::error::Invalid version '$VERSION' (expected SemVer, e.g. 1.2.3 or 0.1.0-alpha)." >&2
             exit 1
