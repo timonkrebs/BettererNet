@@ -1,0 +1,122 @@
+name: Release
+
+# Publishes all packable projects to NuGet. Triggered by pushing a version tag
+# (e.g. `v0.1.0-alpha`), or manually via the Actions tab with an explicit version.
+#
+# Prerequisite: add a repository secret named NUGET_API_KEY
+# (Settings -> Secrets and variables -> Actions) with a nuget.org API key.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g. 0.1.0-alpha)'
+        required: true
+      dry_run:
+        description: 'Pack only — do not push to NuGet'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Pack & publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Resolve version
+        id: version
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            VERSION="$INPUT_VERSION"
+          else
+            VERSION="$GITHUB_REF_NAME"
+          fi
+          VERSION="${VERSION#v}" # tags are vX.Y.Z; also tolerate a leading v in manual input
+          # Validate as SemVer before it flows into build/pack/push. The input is
+          # attacker-influenceable on manual runs, and passing it via env (not inline
+          # ${{ }} interpolation) plus this check avoids shell injection and bad versions.
+          if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$'; then
+            echo "::error::Invalid version '$VERSION' (expected SemVer, e.g. 1.2.3 or 0.1.0-alpha)." >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved version $VERSION"
+
+      - name: Restore
+        run: dotnet restore BettererNet.sln
+
+      - name: Build
+        run: dotnet build BettererNet.sln --configuration Release --no-restore -p:Version=${{ steps.version.outputs.version }}
+
+      - name: Test
+        run: dotnet test BettererNet.sln --configuration Release --no-build
+
+      - name: Pack
+        run: dotnet pack BettererNet.sln --configuration Release --no-build -p:Version=${{ steps.version.outputs.version }} -o artifacts
+
+      - name: Publish to NuGet
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          VERSION: ${{ steps.version.outputs.version }}
+          # Manual runs default to pack-only; tag pushes always publish.
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true' }}
+        run: |
+          # Explicit allow-list of the packages we publish, so a new or internal
+          # project can never land on nuget.org by accident (vs. an artifacts/*.nupkg glob).
+          packages=(
+            BettererNet.Core
+            BettererNet.Cli
+            BettererNet.Regex
+            BettererNet.Coverage
+            BettererNet.Sarif
+            BettererNet.Format
+            BettererNet.Roslyn
+            BettererNet.Roslyn.MSBuild
+            BettererNet.NetArchTest
+            BettererNet.Xunit
+            BettererNet.NUnit
+            BettererNet.MSTest
+            BettererNet.TUnit
+          )
+
+          # Verify every expected package was produced before pushing any.
+          for id in "${packages[@]}"; do
+            pkg="artifacts/${id}.${VERSION}.nupkg"
+            if [ ! -f "$pkg" ]; then
+              echo "::error::Expected package not found: $pkg" >&2
+              exit 1
+            fi
+          done
+
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "Dry run: packed ${#packages[@]} package(s) for $VERSION; not pushing to NuGet."
+            printf '  %s\n' "${packages[@]/%/.$VERSION.nupkg}"
+            exit 0
+          fi
+
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo "::error::NUGET_API_KEY secret is not set. Add it in Settings -> Secrets and variables -> Actions." >&2
+            exit 1
+          fi
+
+          for id in "${packages[@]}"; do
+            pkg="artifacts/${id}.${VERSION}.nupkg"
+            echo "Pushing $pkg"
+            dotnet nuget push "$pkg" \
+              --api-key "$NUGET_API_KEY" \
+              --source https://api.nuget.org/v3/index.json \
+              --skip-duplicate
+          done

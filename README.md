@@ -18,13 +18,17 @@ violations, lint findings, etc.). BettererNet records an accepted **baseline** a
 - The baseline lives in a single, diff-friendly, deterministically-sorted
   `.betterer.results` file that you commit to source control.
 
+**BettererNet uses BettererNet:** this repo's CI runs `betterernet ci` against its own committed
+baseline (see [`betterer.json`](betterer.json)), so new `#pragma warning disable`, `async void`,
+`NotImplementedException`, or sync-over-async calls fail the build.
+
 ## Repository layout
 
 ```
 src/
   BettererNet.Core    # engine: results-file reader/writer, result model
   BettererNet.Xunit   # xUnit adapter — assert against the baseline from your tests
-  BettererNet.Cli     # `dotnet betterernet` tool (skeleton; commands land in Phase 3)
+  BettererNet.Cli     # `betterernet` global tool — ci/start/watch/precommit, betterer.json
 samples/
   SampleProject       # a project with intentional issues
   SampleTest          # example Betterer tests (NetArchTest-based)

@@ -18,12 +18,17 @@ public static class BettererRegexTest
     /// appear and ratchets down as they are removed.
     /// </summary>
     /// <param name="includes">Glob patterns (e.g. <c>"**/*.cs"</c>) relative to <paramref name="baseDirectory"/>.</param>
+    /// <param name="excludes">
+    /// Glob patterns to skip (e.g. <c>"**/obj/**"</c>). Without this, <c>**/*.cs</c> would also scan
+    /// generated build output, so real .NET repos should exclude <c>bin</c>/<c>obj</c>.
+    /// </param>
     /// <param name="baseDirectory">Root to glob from. Defaults to the current directory.</param>
     /// <param name="matchTimeout">Per-match timeout guarding against ReDoS. Defaults to 2 seconds.</param>
     public static BettererTest<BettererFileIssues> Create(
         string name,
         string pattern,
         IReadOnlyList<string> includes,
+        IReadOnlyList<string>? excludes = null,
         string? baseDirectory = null,
         RegexOptions options = RegexOptions.None,
         TimeSpan? matchTimeout = null,
@@ -36,13 +41,13 @@ public static class BettererRegexTest
         var root = Path.GetFullPath(baseDirectory ?? Directory.GetCurrentDirectory());
         return BettererFileTest.Create(
             name,
-            () => Scan(regex, root, includes),
+            () => Scan(regex, root, includes, excludes),
             goal,
             deadline,
-            fingerprint: () => BettererFileFingerprint.Compute(MatchedFiles(root, includes)));
+            fingerprint: () => BettererFileFingerprint.Compute(MatchedFiles(root, includes, excludes)));
     }
 
-    private static IEnumerable<string> MatchedFiles(string root, IReadOnlyList<string> includes)
+    private static Matcher BuildMatcher(IReadOnlyList<string> includes, IReadOnlyList<string>? excludes)
     {
         var matcher = new Matcher();
         foreach (var include in includes)
@@ -50,21 +55,23 @@ public static class BettererRegexTest
             matcher.AddInclude(include);
         }
 
-        return matcher.Execute(new DirectoryInfoWrapper(new DirectoryInfo(root))).Files
-            .Select(file => Path.Combine(root, file.Path));
+        foreach (var exclude in excludes ?? Array.Empty<string>())
+        {
+            matcher.AddExclude(exclude);
+        }
+
+        return matcher;
     }
 
-    private static BettererFileIssues Scan(Regex regex, string root, IReadOnlyList<string> includes)
+    private static IEnumerable<string> MatchedFiles(string root, IReadOnlyList<string> includes, IReadOnlyList<string>? excludes) =>
+        BuildMatcher(includes, excludes).Execute(new DirectoryInfoWrapper(new DirectoryInfo(root))).Files
+            .Select(file => Path.Combine(root, file.Path));
+
+    private static BettererFileIssues Scan(Regex regex, string root, IReadOnlyList<string> includes, IReadOnlyList<string>? excludes)
     {
         var issues = new BettererFileIssues();
 
-        var matcher = new Matcher();
-        foreach (var include in includes)
-        {
-            matcher.AddInclude(include);
-        }
-
-        var matches = matcher.Execute(new DirectoryInfoWrapper(new DirectoryInfo(root)));
+        var matches = BuildMatcher(includes, excludes).Execute(new DirectoryInfoWrapper(new DirectoryInfo(root)));
         foreach (var file in matches.Files)
         {
             // The matcher yields forward-slash relative paths; keep them for portable results.

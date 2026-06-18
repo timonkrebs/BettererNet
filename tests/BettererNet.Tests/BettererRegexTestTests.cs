@@ -19,7 +19,7 @@ public sealed class BettererRegexTestTests : IDisposable
         WriteFile("a.cs", "// TODO one\nvar x = 1; // TODO two\n");
         WriteFile("b.cs", "clean\n");
 
-        var issues = await Run(BettererRegexTest.Create("todos", "TODO", new[] { "**/*.cs" }, _dir));
+        var issues = await Run(BettererRegexTest.Create("todos", "TODO", new[] { "**/*.cs" }, baseDirectory: _dir));
 
         Assert.Equal(2, issues.TotalCount);
         Assert.Equal(2, issues.Files["a.cs"].Count);
@@ -31,7 +31,7 @@ public sealed class BettererRegexTestTests : IDisposable
     {
         WriteFile("a.cs", "line1\n  TODO here\n");
 
-        var issues = await Run(BettererRegexTest.Create("todos", "TODO", new[] { "**/*.cs" }, _dir));
+        var issues = await Run(BettererRegexTest.Create("todos", "TODO", new[] { "**/*.cs" }, baseDirectory: _dir));
 
         var issue = Assert.Single(issues.Files["a.cs"]);
         Assert.Equal(2, issue.Line);
@@ -44,7 +44,20 @@ public sealed class BettererRegexTestTests : IDisposable
         WriteFile("a.cs", "TODO\n");
         WriteFile("a.txt", "TODO\n");
 
-        var issues = await Run(BettererRegexTest.Create("todos", "TODO", new[] { "**/*.cs" }, _dir));
+        var issues = await Run(BettererRegexTest.Create("todos", "TODO", new[] { "**/*.cs" }, baseDirectory: _dir));
+
+        Assert.Equal(1, issues.TotalCount);
+    }
+
+    [Fact]
+    public async Task RespectsGlobExcludes()
+    {
+        WriteFile("a.cs", "TODO\n");
+        Directory.CreateDirectory(Path.Combine(_dir, "obj"));
+        File.WriteAllText(Path.Combine(_dir, "obj", "generated.cs"), "TODO\n");
+
+        var issues = await Run(BettererRegexTest.Create(
+            "todos", "TODO", new[] { "**/*.cs" }, new[] { "**/obj/**" }, baseDirectory: _dir));
 
         Assert.Equal(1, issues.TotalCount);
     }
@@ -54,7 +67,7 @@ public sealed class BettererRegexTestTests : IDisposable
     {
         WriteFile("a.cs", "nothing to see here\n");
 
-        var issues = await Run(BettererRegexTest.Create("todos", "TODO", new[] { "**/*.cs" }, _dir));
+        var issues = await Run(BettererRegexTest.Create("todos", "TODO", new[] { "**/*.cs" }, baseDirectory: _dir));
 
         Assert.Equal(0, issues.TotalCount);
     }

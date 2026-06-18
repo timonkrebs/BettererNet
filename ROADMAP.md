@@ -186,12 +186,14 @@ At functional parity, the highest-value work is making BettererNet *adoptable* a
 *actionable* rather than adding more parity. Tiers are roughly highest-value-first.
 
 **Tier 1 — adoption blockers ✅ done:**
-- ✅ **NuGet packages + global tool** — all eight projects pack with shared metadata; the CLI ships as
-  `dotnet tool install -g BettererNet.Cli` (run `betterernet`) and bundles the data-driven
-  integrations. (A dedicated `dotnet new` template is still nice-to-have; `betterernet init` scaffolds
-  a `betterer.json` for now.)
-- ✅ **Declarative `betterer.json`** — run the data-driven tests (regex, coverage, SARIF) with no
-  compiled config; `betterernet ci` auto-detects the file. (Roslyn/NetArchTest still use a compiled config.)
+- ✅ **NuGet packages + global tool** — all packable projects (13) pack with shared metadata; the CLI
+  ships as `dotnet tool install -g BettererNet.Cli` (run `betterernet`) and bundles the data-driven
+  integrations. A `release` workflow publishes them to nuget.org on a `v*` tag (see
+  [RELEASING.md](RELEASING.md)). (A dedicated `dotnet new` template is still nice-to-have;
+  `betterernet init` scaffolds a `betterer.json` for now.)
+- ✅ **Declarative `betterer.json`** — run the data-driven tests (regex, coverage, SARIF, format) with
+  no compiled config; `betterernet ci` auto-detects the file and regex tests skip `bin`/`obj` by
+  default. (Roslyn/NetArchTest still use a compiled config.)
 
 **Tier 2 — make the output actionable:**
 - ✅ **Surface the diff in reporters** — the console and GitHub reporters now list the specific new
@@ -262,6 +264,10 @@ reporters; SARIF export; NUnit, MSTest, and TUnit adapters; MSBuild-workspace lo
 hashing + `--cache`; a **PR-comment reporter** (`--markdown`); a **trend/history report**
 (`--history`); a **nullable-adoption preset** (`BettererNullableTest`); **per-test ownership & budgets**
 (`WithOwnership` / `owner` + `budget`); and a **`dotnet format` integration** (`BettererFormatTest`).
+
+**Releasing & dogfooding:** a `release` workflow publishes to nuget.org on a `v*` tag, and BettererNet
+now guards its own codebase — CI runs `betterernet ci` against a committed baseline (`betterer.json`).
+Next: cut the `v0.1.0-alpha` tag once the `NUGET_API_KEY` secret is set.
 
 **The planned roadmap is complete.** Further work would be opportunistic — an MSBuild/`dotnet build`
 task, reporters for other CI systems (Azure DevOps, TeamCity), or a cross-process-safe results file —
