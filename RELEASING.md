@@ -24,8 +24,17 @@ containing a nuget.org API key scoped to push the `BettererNet.*` packages.
    Pushing a `v*` tag runs the workflow, which builds, tests, packs with the tag's version, and
    pushes to nuget.org (`--skip-duplicate`, so re-runs are safe).
 
-You can also trigger it manually from the **Actions → Release** tab and supply the version — useful
-for a dry run on a branch.
+You can also run it manually from the **Actions → Release** tab and supply the version. Manual runs
+**default to a dry run** (build + test + pack, no push) so you can verify packaging on any branch;
+uncheck **“Pack only — do not push to NuGet”** to actually publish. Tag pushes always publish.
+
+## Compatibility
+
+BettererNet is pre-1.0; public APIs may still change between releases. Note that the CLI's
+`ConfigLoader` unifies the bundled `BettererNet.*` assemblies with a user's compiled config, so once
+a version is published, changing a public test-factory signature can break already-compiled configs
+at runtime. After 1.0, prefer additive overloads (or append optional parameters) over editing an
+existing signature.
 
 ## Verifying
 
