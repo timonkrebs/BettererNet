@@ -1,5 +1,8 @@
 # BettererNet
 
+[![CI](https://github.com/timonkrebs/BettererNet/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/timonkrebs/BettererNet/actions/workflows/ci.yml)
+[![NuGet](https://img.shields.io/nuget/vpre/BettererNet.Cli.svg?label=BettererNet.Cli)](https://www.nuget.org/packages/BettererNet.Cli)
+
 Allows incremental improvements of .NET architecture for large teams, or a legacy codebase.
 Inspired by [betterer](https://github.com/phenomnomnominal/betterer) but for .NET.
 
