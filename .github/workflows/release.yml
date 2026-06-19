@@ -28,6 +28,12 @@ jobs:
   release:
     name: Pack & publish
     runs-on: ubuntu-latest
+    # Real publishes run in the `nuget-release` environment, so they are subject to
+    # its protection rules (restrict to `v*` tags, optional required reviewer) and the
+    # nuget.org policy can require the matching environment claim -- narrowing when a
+    # publish key can be minted. Dry runs resolve to an empty name (no environment),
+    # so packaging can still be verified on any branch.
+    environment: ${{ !(github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true') && 'nuget-release' || '' }}
     steps:
       - uses: actions/checkout@v4
 

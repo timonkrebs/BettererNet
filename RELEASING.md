@@ -6,15 +6,25 @@ BettererNet publishes all packable projects to [nuget.org](https://www.nuget.org
 ## One-time setup
 
 Publishing uses [nuget.org Trusted Publishing](https://learn.microsoft.com/nuget/nuget-org/trusted-publishing)
-(OIDC) — there is **no API key secret to manage**. On nuget.org (Account → Trusted Publishing), add a
-policy matching this repository:
+(OIDC) — there is **no API key secret to manage**. Two one-time steps:
 
-- **Package owner:** `tsharp`
-- **Repository owner:** `timonkrebs`, **Repository:** `BettererNet`
-- **Workflow:** `release.yml`
+1. **Create a protected environment.** In repo Settings → Environments, add one named
+   **`nuget-release`**. Limit its deployment branches/tags to the `v*` tag pattern (and optionally
+   add yourself as a required reviewer). Real publishes run in this environment; dry runs don't, so
+   packaging can still be verified on any branch.
+2. **Add the Trusted Publishing policy** on nuget.org (Account → Trusted Publishing):
+   - **Package owner:** `tsharp`
+   - **Repository owner:** `timonkrebs`, **Repository:** `BettererNet`
+   - **Workflow:** `release.yml`
+   - **Environment:** `nuget-release`
 
-The workflow requests the OIDC token (`id-token: write`) and exchanges it for a short-lived key via
-the [`NuGet/login`](https://github.com/NuGet/login) action, so nothing else is needed.
+   The environment binding matters for least privilege: a nuget.org policy applies to **all** packages
+   owned by the owner, so requiring `nuget-release` ensures only approved, `v*`-tag-gated runs can
+   mint a publish key.
+
+The workflow requests the OIDC token (`id-token: write`) and the
+[`NuGet/login`](https://github.com/NuGet/login) action exchanges it for a short-lived key, so nothing
+else is needed.
 
 ## Cutting a release
 
