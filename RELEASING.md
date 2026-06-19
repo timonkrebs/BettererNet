@@ -5,8 +5,16 @@ BettererNet publishes all packable projects to [nuget.org](https://www.nuget.org
 
 ## One-time setup
 
-Add a repository secret named **`NUGET_API_KEY`** (Settings → Secrets and variables → Actions)
-containing a nuget.org API key scoped to push the `BettererNet.*` packages.
+Publishing uses [nuget.org Trusted Publishing](https://learn.microsoft.com/nuget/nuget-org/trusted-publishing)
+(OIDC) — there is **no API key secret to manage**. On nuget.org (Account → Trusted Publishing), add a
+policy matching this repository:
+
+- **Package owner:** `tsharp`
+- **Repository owner:** `timonkrebs`, **Repository:** `BettererNet`
+- **Workflow:** `release.yml`
+
+The workflow requests the OIDC token (`id-token: write`) and exchanges it for a short-lived key via
+the [`NuGet/login`](https://github.com/NuGet/login) action, so nothing else is needed.
 
 ## Cutting a release
 

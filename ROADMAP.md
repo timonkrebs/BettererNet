@@ -267,7 +267,7 @@ hashing + `--cache`; a **PR-comment reporter** (`--markdown`); a **trend/history
 
 **Releasing & dogfooding:** a `release` workflow publishes to nuget.org on a `v*` tag, and BettererNet
 now guards its own codebase — CI runs `betterernet ci` against a committed baseline (`betterer.json`).
-Next: cut the `v0.1.0-alpha` tag once the `NUGET_API_KEY` secret is set.
+Next: cut the `v0.1.0-alpha` tag — nuget.org Trusted Publishing (OIDC) is configured, so no API key is needed.
 
 **The planned roadmap is complete.** Further work would be opportunistic — an MSBuild/`dotnet build`
 task, reporters for other CI systems (Azure DevOps, TeamCity), or a cross-process-safe results file —

@@ -3,8 +3,10 @@ name: Release
 # Publishes all packable projects to NuGet. Triggered by pushing a version tag
 # (e.g. `v0.1.0-alpha`), or manually via the Actions tab with an explicit version.
 #
-# Prerequisite: add a repository secret named NUGET_API_KEY
-# (Settings -> Secrets and variables -> Actions) with a nuget.org API key.
+# Auth uses nuget.org Trusted Publishing (OIDC) via the NuGet/login action -- no
+# API key secret to store or rotate. nuget.org must have a trusted-publishing
+# policy for package owner `tsharp`, this repository, and workflow `release.yml`,
+# and the job needs `id-token: write` to request the OIDC token.
 on:
   push:
     tags: ['v*']
@@ -20,6 +22,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write # required for nuget.org Trusted Publishing (OIDC)
 
 jobs:
   release:
@@ -67,9 +70,18 @@ jobs:
       - name: Pack
         run: dotnet pack BettererNet.sln --configuration Release --no-build -p:Version=${{ steps.version.outputs.version }} -o artifacts
 
+      # Trusted Publishing: exchange the GitHub OIDC token for a short-lived
+      # nuget.org API key. Skipped on dry runs, which never touch nuget.org.
+      - name: Authenticate to NuGet (Trusted Publishing)
+        id: login
+        if: ${{ !(github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true') }}
+        uses: NuGet/login@v1
+        with:
+          user: tsharp
+
       - name: Publish to NuGet
         env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
           VERSION: ${{ steps.version.outputs.version }}
           # Manual runs default to pack-only; tag pushes always publish.
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true' }}
@@ -108,7 +120,7 @@ jobs:
           fi
 
           if [ -z "$NUGET_API_KEY" ]; then
-            echo "::error::NUGET_API_KEY secret is not set. Add it in Settings -> Secrets and variables -> Actions." >&2
+            echo "::error::No NuGet key from Trusted Publishing. Check the nuget.org policy (owner/repo/workflow must match) and that the job has id-token: write." >&2
             exit 1
           fi
 
