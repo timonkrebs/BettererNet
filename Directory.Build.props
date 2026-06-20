@@ -28,4 +28,21 @@
     <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
   </ItemGroup>
 
+  <!-- Source Link + symbol packages for packable projects. Source Link ships in the
+       .NET SDK (8+), so no PackageReference is needed; we set the properties the SDK does
+       not default (PublishRepositoryUrl) plus snupkg symbols so consumers can step into
+       the package sources while debugging. -->
+  <PropertyGroup Condition="'$(IsPackable)' != 'false'">
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <!-- Deterministic, path-normalized builds on CI only, so released binaries are
+       reproducible (left off locally to preserve a normal debugging experience). -->
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
 </Project>
