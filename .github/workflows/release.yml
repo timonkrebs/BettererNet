@@ -136,5 +136,20 @@ jobs:
             dotnet nuget push "$pkg" \
               --api-key "$NUGET_API_KEY" \
               --source https://api.nuget.org/v3/index.json \
-              --skip-duplicate
+              --skip-duplicate \
+              --no-symbols
+
+            # Push symbols explicitly: dotnet nuget push does not reliably pair a
+            # .snupkg that lives in a subdirectory (NuGet/Home#8016), so the symbol
+            # package would otherwise be built but never published.
+            sym="artifacts/${id}.${VERSION}.snupkg"
+            if [ -f "$sym" ]; then
+              echo "Pushing $sym"
+              dotnet nuget push "$sym" \
+                --api-key "$NUGET_API_KEY" \
+                --source https://api.nuget.org/v3/index.json \
+                --skip-duplicate
+            else
+              echo "::warning::Symbol package not found: $sym"
+            fi
           done
