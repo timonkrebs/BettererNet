@@ -3,12 +3,14 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
-    <!-- TUnit runs on Microsoft.Testing.Platform; enable `dotnet test` integration for the solution. -->
-    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+    <!-- TUnit 1.x runs only on Microsoft.Testing.Platform and dropped the VSTest bridge,
+         so on the .NET 10 SDK it can't run under the unified `dotnet test` used by the
+         VSTest-based xUnit/NUnit/MSTest projects. CI runs this project on its own via
+         `dotnet run` (Microsoft.Testing.Platform) instead. -->
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="TUnit" Version="0.25.21" />
+    <PackageReference Include="TUnit" Version="1.56.18" />
   </ItemGroup>
 
   <ItemGroup>

@@ -49,7 +49,23 @@ tests/
 
 ```bash
 dotnet build BettererNet.sln
-dotnet test  BettererNet.sln
+```
+
+xUnit, NUnit and MSTest run on VSTest; TUnit runs on
+[Microsoft.Testing.Platform](https://learn.microsoft.com/dotnet/core/testing/microsoft-testing-platform-intro),
+which can't share a `dotnet test` invocation with them on the .NET 10 SDK. Run the
+VSTest suites and the TUnit suite separately (as CI does):
+
+```bash
+# xUnit / NUnit / MSTest (VSTest)
+dotnet test tests/BettererNet.Tests
+dotnet test tests/BettererNet.MSTest.Tests
+dotnet test tests/BettererNet.NUnit.Tests
+dotnet test tests/BettererNet.Roslyn.MSBuild.Tests
+dotnet test samples/SampleTest
+
+# TUnit (Microsoft.Testing.Platform)
+dotnet run --project tests/BettererNet.TUnit.Tests
 ```
 
 ## Usage (xUnit)

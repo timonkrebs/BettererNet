@@ -70,8 +70,19 @@ jobs:
       - name: Build
         run: dotnet build BettererNet.sln --configuration Release --no-restore -p:Version=${{ steps.version.outputs.version }}
 
-      - name: Test
-        run: dotnet test BettererNet.sln --configuration Release --no-build
+      # VSTest projects (xUnit/NUnit/MSTest) run via `dotnet test`; TUnit is
+      # Microsoft.Testing.Platform-only and can't run under `dotnet test` on the
+      # .NET 10 SDK, so it runs on its own below.
+      - name: Test (xUnit, NUnit, MSTest)
+        shell: bash
+        run: |
+          set -euo pipefail
+          for proj in $(grep -rl 'Microsoft.NET.Test.Sdk' tests samples --include='*.csproj'); do
+            dotnet test "$proj" --configuration Release --no-build
+          done
+
+      - name: Test (TUnit via Microsoft.Testing.Platform)
+        run: dotnet run --project tests/BettererNet.TUnit.Tests --configuration Release --no-build
 
       - name: Pack
         run: dotnet pack BettererNet.sln --configuration Release --no-build -p:Version=${{ steps.version.outputs.version }} -o artifacts
@@ -136,5 +147,20 @@ jobs:
             dotnet nuget push "$pkg" \
               --api-key "$NUGET_API_KEY" \
               --source https://api.nuget.org/v3/index.json \
-              --skip-duplicate
+              --skip-duplicate \
+              --no-symbols
+
+            # Push symbols explicitly: dotnet nuget push does not reliably pair a
+            # .snupkg that lives in a subdirectory (NuGet/Home#8016), so the symbol
+            # package would otherwise be built but never published.
+            sym="artifacts/${id}.${VERSION}.snupkg"
+            if [ -f "$sym" ]; then
+              echo "Pushing $sym"
+              dotnet nuget push "$sym" \
+                --api-key "$NUGET_API_KEY" \
+                --source https://api.nuget.org/v3/index.json \
+                --skip-duplicate
+            else
+              echo "::warning::Symbol package not found: $sym"
+            fi
           done

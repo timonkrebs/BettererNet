@@ -8,7 +8,7 @@
 
   <ItemGroup>
     <!-- Only the assertions package: the adapter just needs Assert.Fail, not the test runner. -->
-    <PackageReference Include="TUnit.Assertions" Version="0.25.21" />
+    <PackageReference Include="TUnit.Assertions" Version="1.56.18" />
   </ItemGroup>
 
   <ItemGroup>
