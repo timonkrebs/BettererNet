@@ -70,8 +70,19 @@ jobs:
       - name: Build
         run: dotnet build BettererNet.sln --configuration Release --no-restore -p:Version=${{ steps.version.outputs.version }}
 
-      - name: Test
-        run: dotnet test BettererNet.sln --configuration Release --no-build
+      # VSTest projects (xUnit/NUnit/MSTest) run via `dotnet test`; TUnit is
+      # Microsoft.Testing.Platform-only and can't run under `dotnet test` on the
+      # .NET 10 SDK, so it runs on its own below.
+      - name: Test (xUnit, NUnit, MSTest)
+        shell: bash
+        run: |
+          set -euo pipefail
+          for proj in $(grep -rl 'Microsoft.NET.Test.Sdk' tests samples --include='*.csproj'); do
+            dotnet test "$proj" --configuration Release --no-build
+          done
+
+      - name: Test (TUnit via Microsoft.Testing.Platform)
+        run: dotnet run --project tests/BettererNet.TUnit.Tests --configuration Release --no-build
 
       - name: Pack
         run: dotnet pack BettererNet.sln --configuration Release --no-build -p:Version=${{ steps.version.outputs.version }} -o artifacts

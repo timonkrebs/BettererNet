@@ -27,8 +27,20 @@ jobs:
       - name: Build
         run: dotnet build BettererNet.sln --configuration Release --no-restore
 
-      - name: Test
-        run: dotnet test BettererNet.sln --configuration Release --no-build --verbosity normal
+      # xUnit/NUnit/MSTest run on VSTest; TUnit runs only on Microsoft.Testing.Platform,
+      # which `dotnet test` can't host alongside them on the .NET 10 SDK. Run the
+      # VSTest projects (those referencing Microsoft.NET.Test.Sdk) via `dotnet test`...
+      - name: Test (xUnit, NUnit, MSTest)
+        shell: bash
+        run: |
+          set -euo pipefail
+          for proj in $(grep -rl 'Microsoft.NET.Test.Sdk' tests samples --include='*.csproj'); do
+            dotnet test "$proj" --configuration Release --no-build --verbosity normal
+          done
+
+      # ...and the TUnit project on its own.
+      - name: Test (TUnit via Microsoft.Testing.Platform)
+        run: dotnet run --project tests/BettererNet.TUnit.Tests --configuration Release --no-build
 
       # Dogfood: BettererNet guards its own codebase via betterer.json (auto-detected).
       - name: BettererNet self-check
