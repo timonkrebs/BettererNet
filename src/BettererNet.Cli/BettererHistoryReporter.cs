@@ -22,11 +22,14 @@ public sealed class BettererHistoryReporter : IBettererReporter
             counts[run.Name] = BettererCount.Of(run.Result);
         }
 
-        // Reporters are synchronous; this runs in a console process with no captured sync context.
-        var history = BettererHistory.LoadAsync(_historyPath).GetAwaiter().GetResult();
-        history.Append(new BettererHistorySnapshot { Timestamp = DateTimeOffset.UtcNow, Counts = counts });
-        history.SaveAsync().GetAwaiter().GetResult();
-
-        File.WriteAllText(Path.ChangeExtension(_historyPath, ".md"), history.RenderMarkdown());
+        // IBettererReporter is synchronous. Run the async I/O on a thread-pool thread so we never
+        // block a captured synchronization context (e.g. an ASP.NET request thread).
+        Task.Run(async () =>
+        {
+            var history = await BettererHistory.LoadAsync(_historyPath).ConfigureAwait(false);
+            history.Append(new BettererHistorySnapshot { Timestamp = DateTimeOffset.UtcNow, Counts = counts });
+            await history.SaveAsync().ConfigureAwait(false);
+            File.WriteAllText(Path.ChangeExtension(_historyPath, ".md"), history.RenderMarkdown());
+        }).GetAwaiter().GetResult();
     }
 }

@@ -4,23 +4,6 @@
     "No NotImplementedException": {},
     "No async void": {},
     "No suppressed warnings": {},
-    "No sync-over-async": {
-      "src/BettererNet.Cli/BettererHistoryReporter.cs": [
-        {
-          "column": 28,
-          "hash": "dc39251cbed053d5",
-          "length": 25,
-          "line": 28,
-          "message": ".GetAwaiter().GetResult()"
-        },
-        {
-          "column": 62,
-          "hash": "f96da5e5f5bf945a",
-          "length": 25,
-          "line": 26,
-          "message": ".GetAwaiter().GetResult()"
-        }
-      ]
-    }
+    "No sync-over-async": {}
   }
 }

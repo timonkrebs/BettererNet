@@ -26,15 +26,24 @@ public static class BettererConstraints
         (current, baseline) =>
         {
             var baselineSet = new HashSet<T>(baseline, comparer);
-            if (current.Any(item => !baselineSet.Contains(item)))
+
+            // A regression: any current item not in the baseline.
+            foreach (var item in current)
             {
-                return BettererConstraintResult.Worse;
+                if (!baselineSet.Contains(item))
+                {
+                    return BettererConstraintResult.Worse;
+                }
             }
 
+            // An improvement: any baseline item no longer in the current result.
             var currentSet = new HashSet<T>(current, comparer);
-            if (baseline.Any(item => !currentSet.Contains(item)))
+            foreach (var item in baseline)
             {
-                return BettererConstraintResult.Better;
+                if (!currentSet.Contains(item))
+                {
+                    return BettererConstraintResult.Better;
+                }
             }
 
             return BettererConstraintResult.Same;

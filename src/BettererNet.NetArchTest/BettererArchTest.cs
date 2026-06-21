@@ -21,9 +21,6 @@ public static class BettererArchTest
             goal: goal,
             deadline: deadline);
 
-    private static List<string> FailingTypeNames(TestResult result)
-    {
-        var names = result.FailingTypeNames;
-        return names is null ? new List<string>() : names.ToList();
-    }
+    private static List<string> FailingTypeNames(TestResult result) =>
+        result.FailingTypeNames is { } names ? [.. names] : [];
 }
