@@ -21,8 +21,8 @@ public static class BettererResultsMerge
             var hasTheirs = theirs.Results.TryGetValue(name, out var b);
 
             var value = hasOurs && hasTheirs ? MergeValue(a!, b!)
-                : hasOurs ? Clone(a!)
-                : Clone(b!);
+                : hasOurs ? a!.DeepClone()
+                : b!.DeepClone();
 
             if (value is not null)
             {
@@ -53,7 +53,7 @@ public static class BettererResultsMerge
     {
         if (JsonCanonicalizer.AreEqual(a, b))
         {
-            return Clone(a);
+            return a.DeepClone();
         }
 
         if (TryGetInteger(a, out var integerA) && TryGetInteger(b, out var integerB))
@@ -72,7 +72,7 @@ public static class BettererResultsMerge
         }
 
         // Incompatible shapes: keep the tighter (fewer items).
-        return CountItems(a) <= CountItems(b) ? Clone(a) : Clone(b);
+        return CountItems(a) <= CountItems(b) ? a.DeepClone() : b.DeepClone();
     }
 
     private static JsonArray IntersectArrays(JsonArray a, JsonArray b)
@@ -91,7 +91,7 @@ public static class BettererResultsMerge
             if (available.TryGetValue(key, out var count) && count > 0)
             {
                 available[key] = count - 1;
-                result.Add(Clone(item));
+                result.Add(item?.DeepClone());
             }
         }
 
@@ -125,8 +125,6 @@ public static class BettererResultsMerge
         null => 0,
         _ => 1,
     };
-
-    private static JsonNode? Clone(JsonNode? node) => node is null ? null : JsonNode.Parse(node.ToJsonString());
 
     private static string Compact(JsonNode? node) => node?.ToJsonString() ?? "null";
 }

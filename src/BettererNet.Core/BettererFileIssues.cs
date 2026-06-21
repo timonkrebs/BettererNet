@@ -3,8 +3,6 @@ namespace BettererNet;
 /// <summary>The set of issues a <see cref="BettererFileTest"/> reports, grouped by file.</summary>
 public sealed class BettererFileIssues
 {
-    private static readonly List<BettererFileIssue> EmptyIssues = new();
-
     private readonly SortedDictionary<string, List<BettererFileIssue>> _files = new(StringComparer.Ordinal);
 
     /// <summary>Issues keyed by file path (ordinal-sorted).</summary>
@@ -52,8 +50,8 @@ public sealed class BettererFileIssues
 
         foreach (var file in baseline.Files.Keys.Union(current.Files.Keys, StringComparer.Ordinal))
         {
-            var baselineIssues = baseline.Files.TryGetValue(file, out var b) ? b : EmptyIssues;
-            var currentIssues = current.Files.TryGetValue(file, out var c) ? c : EmptyIssues;
+            var baselineIssues = baseline.Files.TryGetValue(file, out var b) ? (IReadOnlyList<BettererFileIssue>)b : [];
+            var currentIssues = current.Files.TryGetValue(file, out var c) ? (IReadOnlyList<BettererFileIssue>)c : [];
 
             added.AddRange(Unmatched(currentIssues, baselineIssues));
             fixedIssues.AddRange(Unmatched(baselineIssues, currentIssues));

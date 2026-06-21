@@ -6,8 +6,8 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <!-- Shared NuGet package metadata. Only projects without IsPackable=false are packed. -->

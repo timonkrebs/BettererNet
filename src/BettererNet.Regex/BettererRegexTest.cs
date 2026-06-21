@@ -55,7 +55,7 @@ public static class BettererRegexTest
             matcher.AddInclude(include);
         }
 
-        foreach (var exclude in excludes ?? Array.Empty<string>())
+        foreach (var exclude in excludes ?? [])
         {
             matcher.AddExclude(exclude);
         }
